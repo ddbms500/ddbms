@@ -1,0 +1,1 @@
+add_library(meta_data STATIC MetaData.cpp)
