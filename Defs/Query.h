@@ -49,18 +49,18 @@ std::string query_type_str[20] = {"DEFINE_SITE",
                                   "UNKNOWN_TYPE"};
 
 // define site "site name" xx.xx.xx.xx:xxxx (ip + port);
-static const std::string reg_define_site = "^define\\s+site\\s+[A-Za-z0-9]+\\s+[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}:[0-9]+\\s*;$";
+static const std::string reg_define_site = "^(define\\s+site\\s+)([A-Za-z0-9]+)(\\s+)([0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3})(:)([0-9]+)(\\s*;)$";
 // create database "database name";
-static const std::string reg_create_db = "^create\\s+database\\s+[A-Za-z0-9]+\\s*;$";
+static const std::string reg_create_db = "^(create\\s+database\\s+)([A-Za-z0-9]+)\\s*;$";
 // drop database "database name";
-static const std::string reg_drop_db = "^drop\\s+database\\s+[A-Za-z0-9]+\\s*;$";
+static const std::string reg_drop_db = "^(drop\\s+database\\s+)([A-Za-z0-9]+)\\s*;$";
 // create table "table name" ("col name" "col type", ...);
 // 在这里不考虑sql语法错误的问题,只单纯做命令prefix的判别以及简单的sql语法判别
 static const std::string reg_create_table = "^create\\s+table\\s+[A-Za-z0-9]+\\s*\\([^;]+\\)\\s*;$";
 // drop table "table name";
 static const std::string reg_drop_table = "^drop\\s+table\\s+[A-Za-z0-9]+\\s*;$";
 // use "database name";
-static const std::string reg_use_db = "^use\\s+[A-Za-z0-9]+\\s*;$";
+static const std::string reg_use_db = "^(use\\s+)([A-Za-z0-9]+)\\s*;$";
 // create horizontal|vertical fragment on "table name" "fragment conditions";
 static const std::string reg_create_fragment = "^create\\s+(horizontal|vertical)\\s+fragment\\s+on\\s+[A-Za-z0-9]+\\s+[^;]+\\s*;$";
 // allocate "fragmentation name" to "site name";
@@ -82,7 +82,7 @@ static const std::string reg_insert = "^insert\\s+into\\s+[A-Za-z0-9]+\\s+values
 // delete from "table name" where "conditions"
 static const std::string reg_delete = "^delete\\s+from\\s+[A-Za-z0-9]+\\s+where\\s+[^;]+\\s*;$";
 // select xxx from xxx where xxx
-static const std::string reg_select = "^select\\s+((([A-Za-z0-9]+\\s*,\\s*)*[A-Za-z0-9]+)|\\*)\\s+from\\s+([A-Za-z0-9]+\\s*,\\s*)*[A-Za-z0-9]+((\\s+[^;]+)|(\\s*))\\s*;$";
+static const std::string reg_select = "^select\\s+((([A-Za-z0-9.]+\\s*,\\s*)*[A-Za-z0-9.]+)|\\*)\\s+from\\s+([A-Za-z0-9]+\\s*,\\s*)*[A-Za-z0-9]+((\\s+[^;]+)|(\\s*))\\s*;$";
 // exit;
 static const std::string reg_exit = "^exit\\s*;$";
 

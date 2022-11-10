@@ -10,6 +10,11 @@ bool MetaData::add_db(std::string db_name) {
     return true;
 }
 
+bool MetaData::drop_db(std::string db_name) {
+
+    return true;
+}
+
 bool MetaData::use_db(std::string db_name) {
 
     return true;
@@ -18,6 +23,10 @@ bool MetaData::use_db(std::string db_name) {
 bool MetaData::add_table(std::string table_name, std::vector<Attribute> attributes) {
 
     return true;
+}
+
+bool MetaData::drop_table(std::string table_name) {
+
 }
 
 bool MetaData::add_fragment(Fragment fragment) {

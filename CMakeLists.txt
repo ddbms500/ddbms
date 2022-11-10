@@ -11,4 +11,4 @@ add_subdirectory(Executor)
 add_subdirectory(Network)
 
 add_executable(ddbms main.cpp)
-target_link_libraries(ddbms boost_regex meta_data)
+target_link_libraries(ddbms boost_regex meta_data sqlparser)

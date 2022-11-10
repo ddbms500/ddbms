@@ -12,8 +12,10 @@ class MetaData {
 public:
     bool add_site(std::string name, std::string ip, std::string port);
     bool add_db(std::string db_name);
+    bool drop_db(std::string db_name);
     bool use_db(std::string db_name);
     bool add_table(std::string table_name, std::vector<Attribute> attributes);
+    bool drop_table(std::string table_name);
     bool add_fragment(Fragment fragment);
     bool allocate(std::string fragment_name, std::string site_name);
     // TODO: 这边参数可能需要改咩

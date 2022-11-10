@@ -2,11 +2,15 @@
 // Created by sxy on 22-10-20.
 //
 #include <iostream>
-#include <Defs/Query.h>
+#include "hsql/SQLParser.h"
+#include "Defs/Query.h"
 #include <boost/regex.hpp>
 #include "MetaData/MetaData.h"
+#include "Parser/Parser.h"
 
-MetaData meta_data = MetaData();
+MetaData* meta_data = new MetaData();
+Optimizer* optimizer = new Optimizer();
+Parser* parser = new Parser(optimizer);
 
 QueryType get_query_type(std::string str) {
     boost::regex regex_exit(reg_exit);
@@ -62,24 +66,52 @@ void parse_command(std::string command) {
             std::string site_ip = "";
             std::string site_port = "";
             boost::regex regex(reg_define_site);
+            site_name = boost::regex_replace(command, regex, "$2");
+            site_ip = boost::regex_replace(command, regex, "$4");
+            site_port = boost::regex_replace(command, regex, "$6");
 
-            // TODO: 解析name, ip, port
-
-            meta_data.add_site(site_name, site_ip, site_port);
+            meta_data->add_site(site_name, site_ip, site_port);
         } break;
         case QueryType::CREATE_DB: {
             std::string db_name = "";
+            boost::regex regex(reg_create_db);
+            db_name = boost::regex_replace(command, regex, "$2");
 
-            meta_data.add_db(db_name);
+            meta_data->add_db(db_name);
         } break;
         case QueryType::DROP_DB: {
+            std::string db_name = "";
+            boost::regex regex(reg_drop_db);
+            db_name = boost::regex_replace(command, regex, "$2");
 
+            meta_data->drop_db(db_name);
         } break;
         case QueryType::USE_DB: {
+            std::string db_name = "";
+            boost::regex regex(reg_use_db);
+            db_name = boost::regex_replace(command, regex, "$2");
 
+            meta_data->use_db(db_name);
         } break;
         case QueryType::CREATE_TABLE: {
+            std::string table_name = "";
+            hsql::SQLParserResult result;
+            hsql::SQLParser::parse(command, &result);
 
+            if(!result.isValid()) {
+                // TODO: invalid command exception
+                std::cout << "command invalid" << std::endl;
+            }
+
+            if(result.isValid() && result.size() > 0) {
+                const hsql::SQLStatement* statement = result.getStatement(0);
+                if(statement->isType(hsql::kStmtCreate)) {
+
+                }
+                else {
+                    // TODO: invalid command
+                }
+            }
         } break;
         case QueryType::DROP_TABLE: {
 
@@ -91,16 +123,16 @@ void parse_command(std::string command) {
 
         } break;
         case QueryType::SHOW_DATABASES: {
-            meta_data.show_databases();
+            meta_data->show_databases();
         } break;
         case QueryType::SHOW_TABLES: {
-            meta_data.show_tables();
+            meta_data->show_tables();
         } break;
         case QueryType::SHOW_SITES: {
-            meta_data.show_sites();
+            meta_data->show_sites();
         } break;
         case QueryType::SHOW_FRAGMENTS: {
-            meta_data.show_fragments();
+            meta_data->show_fragments();
         } break;
         case QueryType::LOAD_DATA: {
 
@@ -121,6 +153,67 @@ void parse_command(std::string command) {
             // 然后每个站点去执行查询计划,采用pull模型?
             // 临时表的元信息也要存在etcd中吧
             // executor 要去做查询树的执行,需要定义一些外部接口
+            hsql::SQLParserResult* result;
+            hsql::SQLParser::parse(command, result);
+
+            if(!result->isValid()) {
+                std::cout << "command invalid\n";
+                // TODO: throw invalid command exception
+            }
+
+            parser->query_tree_generation(result);
+
+            if(result->isValid() && result->size() > 0) {
+                const hsql::SelectStatement* statement = static_cast<const hsql::SelectStatement*>(result->getStatement(0));
+                if(statement->selectList != nullptr) {
+                    for(const hsql::Expr* expr: *statement->selectList) {
+                        if(expr->type == hsql::kExprStar) {
+                            puts("select expr type: *");
+                        }
+                        else if(expr->type == hsql::kExprColumnRef){
+                            if(expr->hasTable()) {
+                                printf("%s.", expr->table);
+                            }
+                            printf("%s\n", expr->getName());
+                        }
+                    }
+                    if(statement->fromTable->type == hsql::kTableName) {
+                        puts("kTableName:");
+                        printf("%s\n", statement->fromTable->getName());
+                    }
+                    else if(statement->fromTable->type == hsql::kTableCrossProduct) {
+                        puts("kTableCrossProduct:");
+                        for(const hsql::TableRef* table : *statement->fromTable->list) {
+                            printf("%s\n", table->getName());
+                        }
+                    }
+                    else if(statement->fromTable->type == hsql::kTableJoin) {
+                        puts("kTableJoin:");
+                    }
+                    else if(statement->fromTable->type == hsql::kTableSelect) {
+                        puts("kTableSelect:");
+                    }
+                }
+
+                if(statement->whereClause != nullptr) {
+                    hsql::Expr* expr = statement->whereClause;
+                    if(expr->opType == hsql::kOpEquals) {
+                        hsql::Expr* left_expr = expr->expr;
+                        hsql::Expr* right_expr = expr->expr2;
+                        if(left_expr->hasTable()) {
+                            printf("%s.", left_expr->table);
+                        }
+                        printf("%s\n", left_expr->getName());
+                        if(right_expr->hasTable()) {
+                            printf("%s.", right_expr->table);
+                        }
+                        printf("%s\n", right_expr->getName());
+                    }
+                }
+
+            } else {
+                std::cout << "command invalid\n";
+            }
         } break;
         default:
         break;
@@ -128,7 +221,7 @@ void parse_command(std::string command) {
 }
 
 int main(int argc, char **argv) {
-    std::string command = "";
+    std::string command = "select t1.sno from t1, t2 where t1.name = t2.name;";
     parse_command(command);
     return 0;
 }
