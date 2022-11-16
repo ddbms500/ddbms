@@ -1,0 +1,75 @@
+syntax="proto2";
+package whiteBear;//命名空间为whiteBear
+
+option cc_generic_services = true;
+
+message Column{
+    enum AttributeType{
+        BOOL = 0;
+        INT = 1;
+        STRING = 2;
+        FLOAT = 3;
+        DOUBLE = 4;
+    }
+    required string attr_meta = 1;//列名
+    required AttributeType attr_type = 2;//列对应的C++数据类型
+    repeated float attr_values_float = 3;//float型列数组(基准测试未使用)
+    repeated double attr_values_double = 4;//double型列数组(基准测试未使用)
+    repeated bool attr_values_bool = 5;//bool型列数组(基准测试未使用)
+    repeated string attr_values_string = 6;//string型列数组
+    repeated int32 attr_values_int = 7;//int型列数组
+}
+message LoadTableRequest{
+    required string table_name = 1;//要加载的表名
+    required int32 meta_nums = 2 [default=0];//列的数量
+    repeated Column columns = 3;//列为单位的数组
+}
+message LoadTableResponse{
+    required bool success = 1 [default=false];//SQL的执行结果,默认失败
+    optional string errors = 2 [default="NULL error message"];//如果失败，则存储报错信息
+}
+
+message QueryTempTableRequest{
+    required string table_name = 1;//要查询的临时表名
+}
+message QueryTempTableResponse{//整张表的传输
+    required int32 meta_nums = 1 [default=0];//列数量
+    repeated Column columns = 2;//列为单位的数组
+    required bool success = 3 [default=false];//SQL的执行结果,默认失败
+    optional string errors = 4 [default="NULL error message"];//如果失败，则存储报错信息
+}
+
+message DeleteTempTableRequest{
+    required string table_name = 1;//要删除的临时表名
+}
+message DeleteTempTableResponse{
+    required bool success = 1 [default=false];//SQL的执行结果,默认失败
+    optional string errors = 2 [default="NULL error message"];//如果失败，则存储报错信息
+}
+
+message NonResultsSQLRequest{//像delete drop update insert 这样不需要返回表的sql
+    required string sql = 1;//sql语句 
+}
+message NonResultsSQLResponse{
+    required bool success = 1 [default=false];//SQL的执行结果,默认失败
+    optional string errors = 2 [default="NULL error message"];//如果失败，则存储报错信息
+}
+
+message ResultsSQLRequest{//select这样需要返回表的sql
+    required string sql = 1;//sql语句
+}
+message ResultsSQLResponse{
+    required string table_name = 1;//表名
+    required int32 meta_nums = 2 [default=0];//列的数量
+    repeated Column columns = 3;//列为单位组成的数组
+    required bool success = 4 [default=false];//SQL的执行结果,默认失败
+    optional string errors = 5 [default="NULL error message"];//如果失败，则存储报错信息
+}
+
+service DDBService{
+    rpc LoadTable(LoadTableRequest) returns (LoadTableResponse);
+    rpc QueryTempTable(QueryTempTableRequest) returns (QueryTempTableResponse);
+    rpc DeleteTempTable(DeleteTempTableRequest) returns (DeleteTempTableResponse);
+    rpc NonResultsSQL(NonResultsSQLRequest) returns (NonResultsSQLResponse);
+    rpc ResultsSQL (ResultsSQLRequest)  returns (ResultsSQLResponse);
+}
