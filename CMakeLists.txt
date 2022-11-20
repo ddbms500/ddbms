@@ -1,7 +1,5 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.10)
 project(DDBMS)
-
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(/usr/include/mysql)
@@ -14,3 +12,4 @@ add_subdirectory(Network)
 
 add_executable(ddbms main.cpp)
 target_link_libraries(ddbms boost_regex meta_data sqlparser parser executor)
+target_link_libraries(ddbms network_utils)

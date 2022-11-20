@@ -38,7 +38,6 @@ public:
     NodeType get_type() { return node_type_; }
 
     // 理论上来说,把每个节点生成的数据当成一个临时表,那么其实每个节点都最多包含两个表在做join
-private:
     NodeType node_type_;
     std::string site_; // 在哪个站点执行操作
     std::string table_name_; // 对于单点select需要记录select table name

@@ -11,7 +11,7 @@ enum class OperationType {JOIN, EQUAL, LESS, LESS_EQUAL, GREAT, GREAT_EQUAL, DEF
 // great = 4 great_equal = 5
 // less ^ 1 = less_equal
 // great ^ 1 = great_equal
-std::string OperationTypeStr[] = {"join", "=", "<", "<=", ">", ">=", ""};
+static const std::string OperationTypeStr[] = {"join", "=", "<", "<=", ">", ">=", ""};
 
 class Predicate {
 public:

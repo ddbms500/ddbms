@@ -21,11 +21,16 @@ public:
     // 传入根节点的index
     void exec_query_tree(int root_index);
 
+    void print_records(int root_index);
+
     // 把query_tree的子树的根节点编号传送给其他站点, 然后获取其他站点的返回结果(临时表)
     void request_remote_execution_result(int root_index);
 
     mysqlpp::Connection* mysql_connection = nullptr;
     MetaData* meta_data_;
+    // 用query_tree中的节点编号来索引
+    std::unordered_map<int, std::vector<std::string>> temp_table_data;
+    // 每个record存成一个string, value之间用_来分割
 };
 
 #endif //DDBMS_EXECUTOR_H

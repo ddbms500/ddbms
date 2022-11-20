@@ -246,21 +246,21 @@ bool Parser::pruning_check_fragment_selection(const Fragment* fragment, const st
 }
 
 void Parser::query_tree_generation(hsql::SQLParserResult* result) {
-    std::cout << "generate query tree" << std::endl;
+//    std::cout << "generate query tree" << std::endl;
     const hsql::SelectStatement* statement = static_cast<const hsql::SelectStatement *>(result->getStatement(0));
-    std::cout << "get statement" << std::endl;
+//    std::cout << "get statement" << std::endl;
     if(statement->selectList != nullptr) {
         // 找到select涉及的所有表
         // eg. select * from Customer
         if(statement->fromTable->type == hsql::kTableName) {
-            std::cout << "select from single table" << std::endl;
+//            std::cout << "select from single table" << std::endl;
             table_attr_map.emplace(std::piecewise_construct, std::forward_as_tuple(statement->fromTable->getName()), std::forward_as_tuple());
             where_clause.emplace(std::piecewise_construct, std::forward_as_tuple(statement->fromTable->getName()), std::forward_as_tuple());
             select_attr_map.emplace(std::piecewise_construct, std::forward_as_tuple(statement->fromTable->getName()), std::forward_as_tuple());
         }
         // eg. select xx from Book, Publisher where xxxx
         else if(statement->fromTable->type == hsql::kTableCrossProduct) {
-            std::cout << "select from multiple table" << std::endl;
+//            std::cout << "select from multiple table" << std::endl;
             for(const hsql::TableRef* table : *statement->fromTable->list) {
                 table_attr_map.emplace(std::piecewise_construct, std::forward_as_tuple(table->getName()), std::forward_as_tuple());
                 where_clause.emplace(std::piecewise_construct, std::forward_as_tuple(table->getName()), std::forward_as_tuple());
@@ -268,7 +268,7 @@ void Parser::query_tree_generation(hsql::SQLParserResult* result) {
             }
         }
 
-        std::cout << "begin get select list" << std::endl;
+//        std::cout << "begin get select list" << std::endl;
         // 找到每个表最终需要的所有属性
         for(const hsql::Expr* expr : *statement->selectList) {
             std::vector<std::string>* attrs = &(table_attr_map.find(expr->table)->second);

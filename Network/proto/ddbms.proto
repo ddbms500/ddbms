@@ -3,8 +3,59 @@ package whiteBear;//命名空间为whiteBear
 
 option cc_generic_services = true;
 
-message Column{
-    enum AttributeType{
+message Predicate{
+    enum OperationType{
+        JOIN = 0;
+        EQUAL = 1;
+        LESS = 2;
+        LESS_EQUAL = 3;
+        GREAT = 4;
+        GREAT_EQUAL = 5;
+        DEFAULT = 6;
+    }
+    required string attribute_name_ = 1;
+    required string table_name_ = 2;
+    required OperationType operation_type_ = 3;
+    required OperationType left_operation_type_ = 4;
+    required string right_value_ = 5;
+    optional string left_value_ = 6;
+    optional string right_attribute_name_ = 7;
+    optional string right_table_name_ = 8;
+}
+
+message QueryNode{
+    enum NodeType{
+        PROJECTION = 0;
+        SELECTION = 1;
+        JOIN = 2;
+        UNION = 3;
+        DEFAULT = 4;
+    }
+    required NodeType node_type_ = 1;
+    required string site_ = 2;
+    required string table_name_ = 3;
+    repeated string attr_name_ = 4;
+    repeated Predicate select_predicates_ = 5;
+    repeated Predicate join_predicate_ = 6;
+    required int32 parent_ = 7;
+    repeated int32 sons_ = 8;
+    required bool is_parent_ = 9 [default=false];
+    required bool is_leaf_ = 10 [default=false];
+}
+
+message QueryTreeRequest{
+    required int32 n = 1 [default=0];
+    required int32 root_index = 2 [default=-1];
+    repeated QueryNode nodes = 3;
+}
+
+message QueryTreeResponse{
+    required bool success = 1 [default=true];//查询执行树是否成功被接收
+    optional string errors = 2 [default="NULL error message"];//错误信息
+}
+
+message Column{//列
+    enum AttributeType{//数据类型枚举
         BOOL = 0;
         INT = 1;
         STRING = 2;
@@ -12,12 +63,12 @@ message Column{
         DOUBLE = 4;
     }
     required string attr_meta = 1;//列名
-    required AttributeType attr_type = 2;//列对应的C++数据类型
-    repeated float attr_values_float = 3;//float型列数组(基准测试未使用)
-    repeated double attr_values_double = 4;//double型列数组(基准测试未使用)
-    repeated bool attr_values_bool = 5;//bool型列数组(基准测试未使用)
-    repeated string attr_values_string = 6;//string型列数组
-    repeated int32 attr_values_int = 7;//int型列数组
+    required AttributeType attr_type = 2;//列数据类型
+    repeated float attr_values_float = 3;//float数组
+    repeated double attr_values_double = 4;//double数组
+    repeated bool attr_values_bool = 5;//bool数组
+    repeated string attr_values_string = 6;//string数组
+    repeated int32 attr_values_int = 7;//int数组
 }
 message LoadTableRequest{
     required string table_name = 1;//要加载的表名
@@ -26,7 +77,7 @@ message LoadTableRequest{
 }
 message LoadTableResponse{
     required bool success = 1 [default=false];//SQL的执行结果,默认失败
-    optional string errors = 2 [default="NULL error message"];//如果失败，则存储报错信息
+    optional string errors = 2 [default="NULL error message"];//存储报错信息
 }
 
 message QueryTempTableRequest{
@@ -67,6 +118,7 @@ message ResultsSQLResponse{
 }
 
 service DDBService{
+    rpc QueryTreeService(QueryTreeRequest) returns (QueryTreeResponse);
     rpc LoadTable(LoadTableRequest) returns (LoadTableResponse);
     rpc QueryTempTable(QueryTempTableRequest) returns (QueryTempTableResponse);
     rpc DeleteTempTable(DeleteTempTableRequest) returns (DeleteTempTableResponse);
