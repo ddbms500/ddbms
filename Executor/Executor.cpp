@@ -90,7 +90,7 @@ void Executor::exec_query_tree(int root_index) {
 
     // 非叶子节点目前只有union和join
     if(root->get_type() == NodeType::UNION) {
-        // 把节点
+        // 把所有的data都union起来
     }
     else {
 

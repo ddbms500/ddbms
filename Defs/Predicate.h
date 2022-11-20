@@ -30,14 +30,14 @@ public:
               : table_name_(table_name), attribute_name_(attribute_name), operation_type_(operation_type),
               right_table_name_(right_table_name), right_attribute_name_(right_attribute_name){}
 
-    std::string attribute_name_;
-    std::string table_name_;
+    std::string attribute_name_ = "";
+    std::string table_name_ = "";
 
     OperationType operation_type_ = OperationType::DEFAULT;
     OperationType left_operation_type_ = OperationType::DEFAULT;
     // 通过检查left_operation_type是否是DEFAULT来判断是否存在left_value
 
-    std::string right_value_;
+    std::string right_value_ = "";
     std::string left_value_;
 
     // used for join operation

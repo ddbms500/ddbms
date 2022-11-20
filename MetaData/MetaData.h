@@ -44,6 +44,8 @@ public:
     // 记录当前机器的site_name
     std::string local_site_name;
     QueryTree query_tree;
+    std::unordered_map<int, >
+    std::vector<Table> temp_tables;
 };
 
 #endif

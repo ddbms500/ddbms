@@ -10,7 +10,7 @@
 #include "Predicate.h"
 #define NODE_SIZE 1003
 
-enum class NodeType {PROJECTION, SELECTION, JOIN, UNION};
+enum class NodeType {PROJECTION, SELECTION, JOIN, UNION, DEFAULT};
 
 class QueryNode {
 public:
@@ -39,14 +39,14 @@ public:
 
     // 理论上来说,把每个节点生成的数据当成一个临时表,那么其实每个节点都最多包含两个表在做join
 private:
-    NodeType node_type_;
-    std::string site_; // 在哪个站点执行操作
-    std::string table_name_; // 对于单点select需要记录select table name
+    NodeType node_type_ = NodeType::DEFAULT;
+    std::string site_ = ""; // 在哪个站点执行操作
+    std::string table_name_ = ""; // 对于单点select需要记录select table name
 
     std::vector<std::string> attr_name_; // 投影算子需要的attr_name, eg. customer_id, orders_customer_id等
     std::vector<Predicate> select_predicates_; // select算子需要的谓词条件, eg. book_copies > 5000
     Predicate join_predicate_; // join算子需要的谓词条件 eg. book_publisher_id = publisher_id
-    int parent_; // (parent node) -> parent = -1, 存储父亲节点的编号
+    int parent_ = -1; // (parent node) -> parent = -1, 存储父亲节点的编号
     std::vector<int> sons_; // (leaf node) ->sons.size() = 0
     bool is_parent_ = false;
     bool is_leaf_ = false;
