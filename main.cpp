@@ -7,10 +7,13 @@
 #include <boost/regex.hpp>
 #include "MetaData/MetaData.h"
 #include "Parser/Parser.h"
+#include "Executor/Executor.h"
+#include "Utils/Exceptions.h"
 
 MetaData* meta_data = new MetaData();
 Optimizer* optimizer = new Optimizer();
-Parser* parser = new Parser(optimizer);
+Parser* parser = new Parser(optimizer, meta_data);
+Executor* executor = new Executor(meta_data);
 
 QueryType get_query_type(std::string str) {
     boost::regex regex_exit(reg_exit);
@@ -149,71 +152,25 @@ void parse_command(std::string command) {
         } break;
         case QueryType::SELECT: {
             // TODO:
-            // parser模块生成一个查询计划,把查询计划写入到etcd中(为什么要写入etcd呢,直接发送给每个站点不可以么)
-            // 然后每个站点去执行查询计划,采用pull模型?
-            // 临时表的元信息也要存在etcd中吧
-            // executor 要去做查询树的执行,需要定义一些外部接口
-            hsql::SQLParserResult* result;
-            hsql::SQLParser::parse(command, result);
+            // parser模块生成一个查询计划,把查询计划写入到etcd中(为什么要写入etcd呢,直接发送给每个站点不可以么?)
+            // 然后每个站点去执行查询计划,采用pull模型? (executor)
+            // 临时表的元信息也要存在etcd中吧(临时表的元信息其实就是query_tree每个节点的元信息吧,etcd存的key_value中的key如何来确定呢)
+            // 当前函数需要去request_temp_table(请求临时表也就是每个节点(执行算子)生成的数据)然后输出
+            // request_temp_table传递什么参数取决于写入etcd的query_tree如何去表示key
+            // executor不断去query子节点的数据
+            hsql::SQLParserResult result;
+            hsql::SQLParser::parse(command, &result);
 
-            if(!result->isValid()) {
-                std::cout << "command invalid\n";
-                // TODO: throw invalid command exception
+            std::cout << "finish parse" << std::endl;
+
+            if(!result.isValid()) {
+//                std::cout << "command invalid\n";
+                throw new InvalidCommandException("invalid select command \"" + command + "\";");
             }
 
-            parser->query_tree_generation(result);
-
-            if(result->isValid() && result->size() > 0) {
-                const hsql::SelectStatement* statement = static_cast<const hsql::SelectStatement*>(result->getStatement(0));
-                if(statement->selectList != nullptr) {
-                    for(const hsql::Expr* expr: *statement->selectList) {
-                        if(expr->type == hsql::kExprStar) {
-                            puts("select expr type: *");
-                        }
-                        else if(expr->type == hsql::kExprColumnRef){
-                            if(expr->hasTable()) {
-                                printf("%s.", expr->table);
-                            }
-                            printf("%s\n", expr->getName());
-                        }
-                    }
-                    if(statement->fromTable->type == hsql::kTableName) {
-                        puts("kTableName:");
-                        printf("%s\n", statement->fromTable->getName());
-                    }
-                    else if(statement->fromTable->type == hsql::kTableCrossProduct) {
-                        puts("kTableCrossProduct:");
-                        for(const hsql::TableRef* table : *statement->fromTable->list) {
-                            printf("%s\n", table->getName());
-                        }
-                    }
-                    else if(statement->fromTable->type == hsql::kTableJoin) {
-                        puts("kTableJoin:");
-                    }
-                    else if(statement->fromTable->type == hsql::kTableSelect) {
-                        puts("kTableSelect:");
-                    }
-                }
-
-                if(statement->whereClause != nullptr) {
-                    hsql::Expr* expr = statement->whereClause;
-                    if(expr->opType == hsql::kOpEquals) {
-                        hsql::Expr* left_expr = expr->expr;
-                        hsql::Expr* right_expr = expr->expr2;
-                        if(left_expr->hasTable()) {
-                            printf("%s.", left_expr->table);
-                        }
-                        printf("%s\n", left_expr->getName());
-                        if(right_expr->hasTable()) {
-                            printf("%s.", right_expr->table);
-                        }
-                        printf("%s\n", right_expr->getName());
-                    }
-                }
-
-            } else {
-                std::cout << "command invalid\n";
-            }
+            parser->query_tree_generation(&result);
+            // query_tree用完之后要clear掉
+            parser->print_query_tree(parser->get_query_tree_root());
         } break;
         default:
         break;
@@ -221,7 +178,14 @@ void parse_command(std::string command) {
 }
 
 int main(int argc, char **argv) {
-    std::string command = "select t1.sno from t1, t2 where t1.name = t2.name;";
-    parse_command(command);
+    std::string command = "select Publisher.name, Publisher.nation, Book.title, Book.copies from Book, Publisher "
+                          "where Book.publisher_id=Publisher.id and Publisher.nation='USA' and Book.copies>1000;";
+    meta_data->init();
+    executor->exec_sql_local("");
+    try{
+        parse_command(command);
+    } catch (InvalidCommandException &e) {
+        std::cout << e.what() << std::endl;
+    }
     return 0;
 }
