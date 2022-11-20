@@ -91,9 +91,29 @@ void Executor::exec_query_tree(int root_index) {
     // 非叶子节点目前只有union和join
     if(root->get_type() == NodeType::UNION) {
         // 把所有的data都union起来
+        std::vector<std::string>* records = &(temp_table_data.find(root_index)->second);
+        std::vector<int>* sons = root->get_sons();
+        for(auto son = sons->begin(); son != sons->end(); ++son) {
+            exec_query_tree(*son);
+            std::vector<std::string>* child_records = &(temp_table_data.find(*son)->second);
+            for(auto record = child_records->begin(); record != child_records->end(); ++record) {
+                records->emplace_back(*record);
+            }
+        }
     }
     else {
+        // join两张表
+        std::vector<int>* sons = root->get_sons();
+        int left_child_index = *(sons->begin());
+        int right_child_index = sons->back();
+        QueryNode* left_child = &(query_tree->nodes[left_child_index]);
+        QueryNode* right_child = &(query_tree->nodes[right_child_index]);
 
+        // 找到需要join的两张表各自的属性下标
+        Predicate* predicate = root->get_join_predicate();
+        std::string left_attr_name = predicate->attribute_name_;
+        std::string right_attr_name = predicate->right_attribute_name_;
+        Table* left_table = meta_data_->temp_tables[meta_data_->temp_table_index()]
     }
 }
 

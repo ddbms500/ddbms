@@ -26,6 +26,9 @@ public:
 
     mysqlpp::Connection* mysql_connection = nullptr;
     MetaData* meta_data_;
+    // 用query_tree中的节点编号来索引
+    std::unordered_map<int, std::vector<std::string>> temp_table_data;
+    // 每个record存成一个string, value之间用_来分割
 };
 
 #endif //DDBMS_EXECUTOR_H
