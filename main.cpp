@@ -54,12 +54,13 @@ QueryType get_query_type(std::string str) {
 //    if(boost::regex_match(str, regex_select)) return QueryType::SELECT;
 ////    if(boost::regex_match(str, regex_test)) return QueryType::TEST_TYPE;
 //    return QueryType::UNKNOWN_TYPE;
+    if(str.compare("exit") == 0) return QueryType::EXIT;
     return QueryType::SELECT;
 }
 
 QueryType parse_command(std::string command) {
     QueryType query_type = get_query_type(command);
-    std::cout << query_type_str[static_cast<int>(query_type)] << std::endl;
+//    std::cout << query_type_str[static_cast<int>(query_type)] << std::endl;
     switch(query_type) {
         case QueryType::EXIT: {
             // TODO: 断掉连接
@@ -170,7 +171,7 @@ QueryType parse_command(std::string command) {
             }
 
             parser->query_tree_generation(&result);
-            // query_tree用完之后要clear掉
+//             query_tree用完之后要clear掉
 //            parser->print_query_tree(parser->get_query_tree_root());
             executor->exec_query_tree(-1);
             executor->print_records(-1);
@@ -178,7 +179,7 @@ QueryType parse_command(std::string command) {
         default:
         break;
     }
-    return QueryType::EXIT;
+    return QueryType::SELECT;
 }
 
 int main(int argc, char **argv) {
@@ -189,6 +190,7 @@ int main(int argc, char **argv) {
     while (true) {
         std::cout << "ddbms> ";
         getline(std::cin, command);
+        executor->sql_ = command;
         if(parse_command(command) == QueryType::EXIT) break;
     }
 //    try{

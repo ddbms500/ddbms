@@ -163,39 +163,39 @@ void get_ResultsSQLResponse(whiteBear::ResultsSQLResponse&response,bool&success,
             break;
     }
     for(int i=0;i<row_nums;i++){
-        std::string str;
+        std::string str = "";
         for(int j=0;j<response.columns_size();j++){
             switch(response.columns(j).attr_type()){
                 case whiteBear::Column::BOOL:
-                    if(j!=0){
+                    if(j==0){
                         str+=std::to_string(response.columns(j).attr_values_bool(i));
                     }else{
                         str+=("_"+std::to_string(response.columns(j).attr_values_bool(i)));
                     }
                     break;
                 case whiteBear::Column::INT:
-                    if(j!=0){
+                    if(j==0){
                         str+=std::to_string(response.columns(j).attr_values_int(i));
                     }else{
                         str+=("_"+std::to_string(response.columns(j).attr_values_int(i)));
                     }
                     break;
                 case whiteBear::Column::STRING:
-                    if(j!=0){
+                    if(j==0){
                         str+=response.columns(j).attr_values_string(i);
                     }else{
                         str+=("_"+response.columns(j).attr_values_string(i));
                     }
                     break;
                 case whiteBear::Column::FLOAT:
-                    if(j!=0){
+                    if(j==0){
                         str+=std::to_string(response.columns(j).attr_values_float(i));
                     }else{
                         str+=("_"+std::to_string(response.columns(j).attr_values_float(i)));
                     }
                     break;
                 case whiteBear::Column::DOUBLE:
-                    if(j!=0){
+                    if(j==0){
                         str+=std::to_string(response.columns(j).attr_values_double(i));
                     }else{
                         str+=("_"+std::to_string(response.columns(j).attr_values_double(i)));

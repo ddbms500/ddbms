@@ -5,12 +5,12 @@
 #include "NetworkRequest.h"
 
 void Executor::exec_sql_local(std::string sql) {
-    sql = "select Publisher.name from Publisher;";
+    sql = sql_;
     mysqlpp::Query query = mysql_connection->query(sql);
     mysqlpp::StoreQueryResult result = query.store();
 
     int record_num = result.num_rows();
-    std::cout << record_num << std::endl;
+//    std::cout << record_num << std::endl;
 //    std::cout << "name\n";
 //    for(int i = 0; i < record_num; ++i) {
 //        std::cout << result[i]["name"] << std::endl;
@@ -18,23 +18,23 @@ void Executor::exec_sql_local(std::string sql) {
 
     temp_table_data.emplace(std::piecewise_construct, std::forward_as_tuple(0), std::forward_as_tuple());
     std::vector<std::string>* records = &(temp_table_data.find(0)->second);
-    records->clear();
+//    records->clear();
     for(int i = 0; i < record_num; ++i) {
-        std::cout<<i << " " << records->size() << " ";
+//        std::cout<<i << " " << records->size() << " ";
         records->emplace_back(result[i]["name"]);
-        std::cout << records->size() << std::endl;
+//        std::cout << records->size() << std::endl;
     }
-    std::cout << records->size() << std::endl;
+//    std::cout << records->size() << std::endl;
 }
 
 // 执行本地站点上的执行计划
 void Executor::exec_query_tree(int root_index) {
     exec_sql_local("");
-//    request_remote_execution_result(-1);
-//    std::vector<std::string>* total_records = &(temp_table_data.find(0)->second);
-//    std::vector<std::string>* sub_records = &(temp_table_data.find(1)->second);
-//    for(auto record = sub_records->begin(); record != sub_records->end(); ++record)
-//        total_records->emplace_back(*record);
+    request_remote_execution_result(-1);
+    std::vector<std::string>* total_records = &(temp_table_data.find(0)->second);
+    std::vector<std::string>* sub_records = &(temp_table_data.find(1)->second);
+    for(auto record = sub_records->begin(); record != sub_records->end(); ++record)
+        total_records->emplace_back(*record);
 //    QueryTree* query_tree = &(meta_data_->query_tree);
 //    QueryNode* root = &(query_tree->nodes[root_index]);
 //    // 如果根节点不是本地站点执行,那么就发送一个给其他站点的request请求
@@ -142,9 +142,9 @@ void Executor::request_remote_execution_result(int root_index) {
 //    std::string aim_site = root->get_site_name();
 //    std::string ip = meta_data_->site_map[aim_site].first;
 //    std::string port = meta_data_->site_map[aim_site].second;
-    std::string ip = "10.46.192.28";
+    std::string ip = "192.168.212.150";
     std::string port = "8800";
-    std::string sql = "select Publisher.name from Publisher;";
+    std::string sql = sql_;
     brpc::Channel channel;
     initial_channel(channel, ip + ":" + port);
     whiteBear::DDBService_Stub stub(&channel);
@@ -153,6 +153,7 @@ void Executor::request_remote_execution_result(int root_index) {
     set_ResultsSQLRequest(request, sql);
     brpc::Controller controller;
     stub.ResultsSQL(&controller, &request, &response, nullptr);
+//    std::cout << "finished send request and get response;\n";
     temp_table_data.emplace(std::piecewise_construct, std::forward_as_tuple(1), std::forward_as_tuple());
     std::vector<std::string>* records = &(temp_table_data.find(1)->second);
     bool success;

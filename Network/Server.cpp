@@ -247,6 +247,7 @@ namespace whiteBear{
             //BRPC server需要
             brpc::ClosureGuard done_guard(done);
             brpc::Controller*cntl=static_cast<brpc::Controller*>(cntl_base);
+            LOG(INFO)<<"received ResultsSQL request from"<<cntl->remote_side();
             try{
                 mysqlpp::Connection conn("ddb", "127.0.0.1", "root", "123456");
                 mysqlpp::Query query = conn.query();

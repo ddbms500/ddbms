@@ -285,21 +285,21 @@ void Parser::query_tree_generation(hsql::SQLParserResult* result) {
                 select_attrs->push_back(expr->getName());
             }
         }
-        std::cout << "finish get select list"<< std::endl;
+//        std::cout << "finish get select list"<< std::endl;
 
-        std::cout << "begin get where clause" << std::endl;
+//        std::cout << "begin get where clause" << std::endl;
         // 获取select的所有谓词表达式
         if(statement->whereClause != nullptr) {
             hsql::Expr* expr = statement->whereClause;
             get_where_clause(expr);
-            for(auto iter : where_clause) {
-                std::string table_name = iter.first;
-                std::cout << "table_name: " << table_name << std::endl;
-                auto predicates = iter.second;
-                for(auto predicate : predicates) {
-                    std::cout << predicate.table_name_ << "." << predicate.attribute_name_ << " " << static_cast<int>(predicate.operation_type_) << " " << predicate.right_value_ << std::endl;
-                }
-            }
+//            for(auto iter : where_clause) {
+//                std::string table_name = iter.first;
+//                std::cout << "table_name: " << table_name << std::endl;
+//                auto predicates = iter.second;
+//                for(auto predicate : predicates) {
+//                    std::cout << predicate.table_name_ << "." << predicate.attribute_name_ << " " << static_cast<int>(predicate.operation_type_) << " " << predicate.right_value_ << std::endl;
+//                }
+//            }
         }
         std::cout << "finish get where clause" << std::endl;
 
@@ -321,29 +321,29 @@ void Parser::query_tree_generation(hsql::SQLParserResult* result) {
             }
         }
 
-        std::cout << std::endl << "leaf node projection: "<< std::endl;
+//        std::cout << std::endl << "leaf node projection: "<< std::endl;
         // 对projection的属性去重
         for(auto iter = table_attr_map.begin(); iter != table_attr_map.end(); ++iter) {
-            std::cout << "table name: " << iter->first << std::endl;
+//            std::cout << "table name: " << iter->first << std::endl;
             std::vector<std::string>* attrs = &(iter->second);
             std::sort(attrs->begin(), attrs->end());
             attrs->erase(std::unique(attrs->begin(), attrs->end()), attrs->end());
-            for(auto attr = attrs->begin(); attr != attrs->end(); ++attr)
-                std::cout << *attr << " ";
-            std::cout << std::endl;
+//            for(auto attr = attrs->begin(); attr != attrs->end(); ++attr)
+//                std::cout << *attr << " ";
+//            std::cout << std::endl;
         }
 
-        std::cout << std::endl << "ordered predicates" << std::endl;
-        for(auto iter : where_clause) {
-            std::string table_name = iter.first;
-            std::cout << "table_name: " << table_name << std::endl;
-            auto predicates = iter.second;
-            for(auto predicate : predicates) {
-                std::cout << predicate.table_name_ << "." << predicate.attribute_name_ << " " << static_cast<int>(predicate.operation_type_) << " " << predicate.right_value_ << std::endl;
-            }
-        }
+//        std::cout << std::endl << "ordered predicates" << std::endl;
+//        for(auto iter : where_clause) {
+//            std::string table_name = iter.first;
+//            std::cout << "table_name: " << table_name << std::endl;
+//            auto predicates = iter.second;
+//            for(auto predicate : predicates) {
+//                std::cout << predicate.table_name_ << "." << predicate.attribute_name_ << " " << static_cast<int>(predicate.operation_type_) << " " << predicate.right_value_ << std::endl;
+//            }
+//        }
 
-        std::cout << "\ngenerate selection nodes and projection nodes for every fragment" << std::endl;
+//        std::cout << "\ngenerate selection nodes and projection nodes for every fragment" << std::endl;
         // 最基础的树把对每个fragment的selection作为leaf node,然后去做projection,最后去做merge
         // 默认按照left deep tree的结构来merge
         // site_leaf_node起名不太恰当了, 应该是每个site生成的子树的父节点,可能是projection节点, 可能是selection节点
@@ -353,9 +353,9 @@ void Parser::query_tree_generation(hsql::SQLParserResult* result) {
         for(auto iter = table_attr_map.begin(); iter != table_attr_map.end(); ++iter) {
             // table代表当前在生成leaf node的表
             // 对于每个selection的leaf node, 判断一下上层是否需要加一个projection节点
-            std::cout << iter->first << std::endl;
+//            std::cout << iter->first << std::endl;
             int table_index_num = meta_data_->table_index.find(iter->first)->second;
-            std::cout << table_index_num << std::endl;
+//            std::cout << table_index_num << std::endl;
             Table* table = &(meta_data_->tables[meta_data_->table_index[iter->first]]);
             std::vector<std::string>* projection_attrs = &(iter->second);
             table_leaf_node.emplace(std::piecewise_construct, std::forward_as_tuple(iter->first), std::forward_as_tuple());
@@ -393,9 +393,9 @@ void Parser::query_tree_generation(hsql::SQLParserResult* result) {
                 ++query_tree.n;
             }
         }
-        std::cout << "finished generate leaf nodes\n";
+//        std::cout << "finished generate leaf nodes\n";
 
-        std::cout << "\nbegin generate union nodes\n";
+//        std::cout << "\nbegin generate union nodes\n";
         std::unordered_map<std::string, int> union_node_index_map;
         // TODO: 希望能够计算到每个fragment怎么发送,但是为了先跑起来,目前先把所有的表的fragment的数据都发送到当前site, 先做Union, 再做join
         for(auto iter = table_leaf_node.begin(); iter != table_leaf_node.end(); ++iter) {
@@ -413,9 +413,9 @@ void Parser::query_tree_generation(hsql::SQLParserResult* result) {
             union_node_index_map.emplace(iter->first, union_node_index);
         }
 
-        std::cout << "finish generate union nodes\n";
+//        std::cout << "finish generate union nodes\n";
 
-        std::cout << "\nbegin generate join nodes\n";
+//        std::cout << "\nbegin generate join nodes\n";
         // 目前先按照left deep tree的方式去做join, 就按照默认的顺序去join
         // TODO: 目前只默认两个表的join只有单个属性, 后续需要考虑多个属性的情况
 
@@ -423,7 +423,7 @@ void Parser::query_tree_generation(hsql::SQLParserResult* result) {
         int left_node_index;
         for(auto iter = select_attr_map.begin(); iter != select_attr_map.end(); ++iter) {
             std::string table_name = iter->first;
-            std::cout<< table_name << std::endl;
+//            std::cout<< table_name << std::endl;
             if(iter == select_attr_map.begin()) {
                 left_node_table_name = table_name;
                 left_node_index = union_node_index_map.find(table_name)->second;
@@ -461,9 +461,9 @@ void Parser::query_tree_generation(hsql::SQLParserResult* result) {
                 break;
             }
         }
-        std::cout << "finished generate join nodes\n";
+//        std::cout << "finished generate join nodes\n";
 
-        std::cout << "\nbegin generate root node\n";
+//        std::cout << "\nbegin generate root node\n";
         // 最顶部加一个projection节点
         int root_index = query_tree.n++;
         query_tree.nodes[root_index].set_table_name(left_node_table_name);
@@ -481,7 +481,7 @@ void Parser::query_tree_generation(hsql::SQLParserResult* result) {
         query_tree.nodes[left_node_index].set_parent(root_index);
         query_tree.nodes[root_index].set_node_as_parent();
         query_tree.root_index = root_index;
-        std::cout << "finished generate query tree" << std::endl;
+//        std::cout << "finished generate query tree" << std::endl;
 
     }
 }
