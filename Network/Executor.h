@@ -35,15 +35,17 @@ public:
     //针对非select语句，输入SQL语句和站点编号。
     bool Data_Insert_Delete(std::vector<std::string> sql_vec, std::vector<std::string> site_vec);
     void Data_Insert_Delete_Thread(std::string sql_,std::string site_,bool* result);
-    bool request_remote_execution_result(std::string sql,std::string site_);
+    bool request_remote_execution_result(std::string sql,std::string site_,std::vector<std::string>* records);
+    std::vector<std::string> Data_Select_Single(std::string sql,std::string site_,int root_index);//返回string的vector，存要删除的所有记录的主键的值
 
     bool Data_Select_Thread(int root_index,std::promise<bool> &resultObj);//返回执行是否成功
     bool Data_Select(int root_index);//返回执行是否成功
     bool Data_Select_Thread_Remote(int root_index, std::string site_name);//返回执行是否成功
     void Data_Select_Print(int root_index);
 
+    
     // QueryTree get_tree( int root_index);
-    std::string get_sql(QueryNode node) ;//得到node结点中对应的sql语句
+    std::string get_sql(QueryNode* node,int tree_id) ;//得到node结点中对应的sql语句
 
 
 

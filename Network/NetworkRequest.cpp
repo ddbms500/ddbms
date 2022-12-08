@@ -10,7 +10,7 @@ DEFINE_int32(timeout_ms,100,"RPC timeout in milliseconds");
 DEFINE_int32(max_retry,3,"Max retries(not including the first RPC)");
 DEFINE_int32(interval_ms,1000,"Milliseconds between consecutive requests");
 
-static const std::string AttributeTypeStr[] = {"BOOL", "INT", "STRING", "FLOAT", "DOUBLE"};
+static const std::string AttributeTypeStr[] = {"BOOL", "INT", "CHAR(100)", "FLOAT", "DOUBLE"};
 
 
 bool initial_channel(brpc::Channel& channel, std::string server_addr) {

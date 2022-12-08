@@ -364,7 +364,7 @@ void Executor::Data_Select_Thread_Remote(int root_index, std::string site_name_,
 
 
     //第二部分，再次发送节点编号，以及sql语句，获得结果，存储到temp_table中,然后在当前站点创建临时表
-
+    //在本地直接建表，是不需要属性名的，但是现在我也可以知道属性名吧
     whiteBear::ResultsSQLRequest request2;
     whiteBear::ResultsSQLResponse response2;
     std::string table_name = "tree_"+ std::to_string(qt->tree_id)+ "node_"+ std::to_string(root_index)+"_";
@@ -375,9 +375,10 @@ void Executor::Data_Select_Thread_Remote(int root_index, std::string site_name_,
     brpc::Controller controller2;
     stub.ResultsSQL(&controller2, &request2, &response2, nullptr);
 
-    if(temp_table_data.find(root_index) == temp_table_data.end())
-        temp_table_data.emplace(std::piecewise_construct, std::forward_as_tuple(root_index), std::forward_as_tuple());
-    std::vector<std::string>* records = &(temp_table_data.find(root_index)->second);
+    // if(temp_table_data.find(root_index) == temp_table_data.end())
+    //     temp_table_data.emplace(std::piecewise_construct, std::forward_as_tuple(root_index), std::forward_as_tuple());
+    // std::vector<std::string>* records = &(temp_table_data.find(root_index)->second);
+    std::vector<std::string>* records;
     bool success2;
     std::string errors2;
     get_ResultsSQLResponse(response2, success2, errors2, records);
@@ -385,6 +386,7 @@ void Executor::Data_Select_Thread_Remote(int root_index, std::string site_name_,
     auto record = records.begin();
 
     std::string create_sql = "CREATE TABLE ";
+    //获取属性名
     create_sql += table_name +"(" ;
     create_sql += *record ;
     create_sql = create_sql+ ")";
@@ -538,18 +540,18 @@ bool Executor::Data_Select_Thread(int root_index,std::promise<bool> &resultObj) 
         }
 
         //删除所有孩子节点的临时表
-        std::string delete_sql = "DELETE TABLE ";
+        std::string delete_sql = "DROP TABLE ";
         for(q=0;q<cur_nodes.sons_.size(); q++){
             int cur_son_id = cur_nodes.sons_[q];
             std::string table_name = "tree_"+ std::to_string(qt->tree_id)+ "node_"+std::to_string(cur_son_id)+"_";
             std::string delete_sql_son = delete_sql+table_name;
             mysqlpp::Query query_d = mysql_connection->query(delete_sql_son);
             if (query_d.exec()) {
-            std::cout  <<"Delete Table "<<table_name<< " Success!" << std::endl;
+            std::cout  <<"DROP Table "<<table_name<< " Success!" << std::endl;
             resultObj.set_value(true);
             }
             else {
-                std::cout << "Delete Table "<<table_name<< "  FAIL! " << std::endl;
+                std::cout << "DROP Table "<<table_name<< "  FAIL! " << std::endl;
                 resultObj.set_value(false);
                 return false;
             }
@@ -652,17 +654,17 @@ bool Executor::Data_Select(int root_index){//只是去除了所有的resultObj
         }
 
         //删除所有孩子节点的临时表
-        std::string delete_sql = "DELETE TABLE ";
+        std::string delete_sql = "DROP TABLE ";
         for(q=0;q<cur_nodes.sons_.size(); q++){
             int cur_son_id = cur_nodes.sons_[q];
             std::string table_name = "tree_"+ std::to_string(qt->tree_id)+ "node_"+std::to_string(cur_son_id)+"_";
             std::string delete_sql_son = delete_sql+table_name;
             mysqlpp::Query query_d = mysql_connection->query(delete_sql_son);
             if (query_d.exec()) {
-            std::cout  <<"Delete Table "<<table_name<< " Success!" << std::endl;
+            std::cout  <<"DROP Table "<<table_name<< " Success!" << std::endl;
             }
             else {
-                std::cout << "Delete Table "<<table_name<< "  FAIL! " << std::endl;
+                std::cout << "DROP Table "<<table_name<< "  FAIL! " << std::endl;
                 return false;
             }
         }
@@ -671,11 +673,63 @@ bool Executor::Data_Select(int root_index){//只是去除了所有的resultObj
 }
 
 
+std::vector<std::string> Executor::Data_Select_Single(std::string sql_, std::string site_,int root_index){
+    std::vector<std::string> results;//存储结果
+    //当前站点
+    try{
+    if (site_ == meta_data_->local_site_name) {
+        mysqlpp::Query query1 = mysql_connection->query(sql_);
+        //只会取出来一个属性
+        if (mysqlpp::StoreQueryResult res = query1.store())
+            {
+                mysqlpp::StoreQueryResult::const_iterator it;
+                mysqlpp::FieldTypes::value_type ft = res.field_type(0);
+                for (it = res.begin(); it != res.end(); ++it)
+                {
+                    std::string temp_str = "";
+                    mysqlpp::Row row = *it;
+                    if(strstr(ft.sql_name(),"CHAR")){
+                        for(int i=0;i<row[0].size();i++){
+                            temp_str = temp_str+row[0][i]
+                        } 
+                    }
+                    if(strstr(ft.sql_name(),"INT")){
+                        int aa = row[0];
+                        temp_str = to_string(aa);
+                    }
+                    results.push_back(temp_str);
+                }
+            }
+        else {
+            std::cout << "Data_Select_Single Fail " << query1.error() << std::endl;
+        }
+    } 
+    else {
+        std::vector<std::string>* records;
+        if (request_remote_execution_result(sql_, site_,records)) {
+            auto record = records.begin()+1;
+            for(record; record != records.end(); ++record) {
+                results.push_back(*record);
+            }
+        }
+            std::cout << "Data_Select_Single REMOTE" <<site_ << " success!" << std::endl;
+        else {
+            std::cout << "Data_Select_Single REMOTE" <<site_ << " FAIL!" << std::endl;
+        }
+        } 
+    }
+    
+    catch(const mysqlpp::Exception& er){
+                std::cout<<"Data_Select_Single 执行错误"<<er.what()<<std::endl;
+            }
+
+    return results;
+}
+
 //Select操作结束后，再从最开始的根节点中，打印取出来的树
 void Executor::Data_Select_Print(int root_index){
     std::string table_name = "tree_"+ std::to_string(qt->tree_id)+ "node_"+std::to_string(root_index)+"_";
     std::string sel_sql = "SELECT * FROM" + table_name;
-
     mysqlpp::Query query1 = mysql_connection->query(sel_sql);
     if (mysqlpp::StoreQueryResult res = query1.store())
         {
@@ -689,7 +743,6 @@ void Executor::Data_Select_Print(int root_index){
                     std::cout << '\t' << row[jk] ;
                 }
                 std::cout<<std::endl;
-
             }
         }
     else
@@ -697,12 +750,24 @@ void Executor::Data_Select_Print(int root_index){
             std::cout << "Failed to get item list: " << query1.error() << std::endl;
             return ;
         }
+    
+    //删除这个表
+    std::string del_sql = "DROP TABLE" + table_name;
+    mysqlpp::Query query_del = mysql_connection->query(del_sql);
+    if (query_del.exec()) {
+            std::cout  <<"DROP Table "<<table_name<< " Success!" << std::endl;
+            }
+            else {
+                std::cout << "DROP Table "<<table_name<< "  FAIL! " << std::endl;
+                return false;
+            }
+    return true;
 }
 
 
 
 
-bool Executor:: request_remote_execution_result(std::string sql_,std::string site_){
+bool Executor:: request_remote_execution_result(std::string sql_,std::string site_,std::vector<std::string>* records){
     std::string aim_site = site_;
     std::string ip = meta_data_->site_map[aim_site].first;
     std::string port = meta_data_->site_map[aim_site].second;
@@ -716,13 +781,14 @@ bool Executor:: request_remote_execution_result(std::string sql_,std::string sit
     brpc::Controller controller;
     stub.ResultsSQL(&controller, &request, &response, nullptr);
 //    std::cout << "finished send request and get response;\n";
-    temp_table_data.emplace(std::piecewise_construct, std::forward_as_tuple(1), std::forward_as_tuple());
-    std::vector<std::string>* records = &(temp_table_data.find(1)->second);
+    // temp_table_data.emplace(std::piecewise_construct, std::forward_as_tuple(root_index), std::forward_as_tuple());
+    // std::vector<std::string>* records = &(temp_table_data.find(root_index)->second);
     bool success;
     std::string errors;
     get_ResultsSQLResponse(response, success, errors, records);
     return success;
 }
+
 
 void Executor::Data_Insert_Delete_Thread(std::string sql_,std::string site_,bool* result) {
     if (sql_.size()==0){//每个站点都有sql_，空SQL代表当前站点不需要执行。
@@ -739,8 +805,11 @@ void Executor::Data_Insert_Delete_Thread(std::string sql_,std::string site_,bool
             *result = false;
             return;
         }
-    } else {
-        if (request_remote_execution_result_noselect(sql_, site_)) {
+    } 
+    else {
+        //这里可以一直是-1，因为本身不会往temp_table_data里面放
+        std::vector<std::string>* records;
+        if (request_remote_execution_result(sql_, site_,records)) {
             std::cout << site_ << " success!" << std::endl;
         } else {
             *result = false;
