@@ -36,7 +36,8 @@ public:
     bool Data_Insert_Delete(std::vector<std::string> sql_vec, std::vector<std::string> site_vec);
     void Data_Insert_Delete_Thread(std::string sql_,std::string site_,bool* result);
     bool request_remote_execution_result(std::string sql,std::string site_,std::vector<std::string>* records);
-    std::vector<std::string> Data_Select_Single(std::string sql,std::string site_,int root_index);//返回string的vector，存要删除的所有记录的主键的值
+    void Data_Select_Single_Thread(std::string sql,std::string site_,std::vector<std::string>* results);//返回string的vector，存要删除的所有记录的主键的值
+    std::vector<std::string> Data_Select_Single(std::vector<std::string> sql_vec, std::vector<std::string> site_vec);
 
     bool Data_Select_Thread(int root_index,std::promise<bool> &resultObj);//返回执行是否成功
     bool Data_Select(int root_index);//返回执行是否成功

@@ -673,9 +673,60 @@ bool Executor::Data_Select(int root_index){//只是去除了所有的resultObj
 }
 
 
-std::vector<std::string> Executor::Data_Select_Single(std::string sql_, std::string site_,int root_index){
-    std::vector<std::string> results;//存储结果
+
+std::vector<std::string> Exectuor::Data_Select_Single(std::vector<std::string> sql_vec, std::vector<std::string> site_vec){
+    std::vector<std::string> results[site_vec.size()];
+    std::thread load_threads[site_vec.size()];
+    int i;
+    for(i = 0; i < site_vec.size(); i++){
+        /* 开启一个分片并在对应site存储的线程，通过传promise类给线程，让线程把结果给存到results里面，实现结果返回 */
+        load_threads[i] = std::thread(Data_Select_Single_Thread, sql_vec[i],site_vec[i], &results[i]);
+    }
+
+    //等所有线程执行完后，才继续
+    for(i = 0; i < site_vec.size(); i++){
+        load_threads[i].join();
+    }
+
+    std::sort(results[0].begin(), results[0].end());
+    std::sort(results[1].begin(), results[1].end());
+
+    std::vector<std::string> v_intersection1;
+
+    std::set_intersection(results[0].begin(), results[0].end(),
+        results[1].begin(), results[1].end(),
+        std::back_inserter(v_intersection1));
+
+    if(site_vec.size()>=3){
+        std::sort(results[2].begin(), results[2].end());
+        std::sort(v_intersection1.begin(),v_intersection1.end());
+        std::vector<std::string> v_intersection2;
+        std::set_intersection(results[2].begin(), results[2].end(),
+            v_intersection1.begin(), v_intersection1.end(),
+            std::back_inserter(v_intersection2));
+    }
+    else{
+        return v_intersection1;
+    }
+
+    if(site_vec.size()>=4){
+        std::sort(results[3].begin(), results[3].end());
+        std::sort(v_intersection2.begin(),v_intersection2.end());
+        std::vector<std::string> v_intersection3;
+        std::set_intersection(results[3].begin(), results[3].end(),
+            v_intersection2.begin(), v_intersection2.end(),
+            std::back_inserter(v_intersection3));
+        return v_intersection3;
+    }
+    else{
+        return v_intersection2;
+    }
+
+}
+
+void Executor::Data_Select_Single_Thread(std::string sql_, std::string site_,std::vector<std::string>* results){
     //当前站点
+
     try{
     if (site_ == meta_data_->local_site_name) {
         mysqlpp::Query query1 = mysql_connection->query(sql_);
@@ -697,7 +748,7 @@ std::vector<std::string> Executor::Data_Select_Single(std::string sql_, std::str
                         int aa = row[0];
                         temp_str = to_string(aa);
                     }
-                    results.push_back(temp_str);
+                    results->push_back(temp_str);
                 }
             }
         else {
@@ -709,7 +760,7 @@ std::vector<std::string> Executor::Data_Select_Single(std::string sql_, std::str
         if (request_remote_execution_result(sql_, site_,records)) {
             auto record = records.begin()+1;
             for(record; record != records.end(); ++record) {
-                results.push_back(*record);
+                results->push_back(*record);
             }
         }
             std::cout << "Data_Select_Single REMOTE" <<site_ << " success!" << std::endl;
@@ -722,8 +773,7 @@ std::vector<std::string> Executor::Data_Select_Single(std::string sql_, std::str
     catch(const mysqlpp::Exception& er){
                 std::cout<<"Data_Select_Single 执行错误"<<er.what()<<std::endl;
             }
-
-    return results;
+    return ;
 }
 
 //Select操作结束后，再从最开始的根节点中，打印取出来的树
