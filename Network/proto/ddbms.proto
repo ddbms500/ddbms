@@ -62,6 +62,7 @@ message Column{//列
         FLOAT = 3;
         DOUBLE = 4;
     }
+
     required string attr_meta = 1;//列名
     required AttributeType attr_type = 2;//列数据类型
     repeated float attr_values_float = 3;//float数组

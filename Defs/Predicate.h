@@ -13,6 +13,10 @@ enum class OperationType {JOIN, EQUAL, LESS, LESS_EQUAL, GREAT, GREAT_EQUAL, DEF
 // great ^ 1 = great_equal
 static const std::string OperationTypeStr[] = {"join", "=", "<", "<=", ">", ">=", ""};
 
+// OperationTypeStr[static_cast<int>(operation_type)]
+
+
+
 class Predicate {
 public:
     Predicate() {}
@@ -44,5 +48,6 @@ public:
     std::string right_attribute_name_;
     std::string right_table_name_;
 };
+
 
 #endif //DDBMS_PREDICATE_H
