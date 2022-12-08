@@ -127,4 +127,4 @@ add_library(executor STATIC Executor.cpp ${PROTO_SRC} ${PROTO_HEADER})
 target_link_libraries(executor ${BRPC_LIB} ${DYNAMIC_LIB} mysqlpp)
 
 add_executable(server Server.cpp ${PROTO_SRC} ${PROTO_HEADER})
-target_link_libraries(server ${BRPC_LIB} ${DYNAMIC_LIB} mysqlpp)
+target_link_libraries(server ${BRPC_LIB} ${DYNAMIC_LIB} mysqlpp Executor)
