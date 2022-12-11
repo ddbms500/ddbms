@@ -841,10 +841,11 @@ bool Executor:: request_remote_execution_result(std::string sql_,std::string sit
 
 
 void Executor::Data_Insert_Delete_Thread(std::string sql_,std::string site_,bool* result) {
-    if (sql_.size()==0){//每个站点都有sql_，空SQL代表当前站点不需要执行。
-        *result = true;
-        return;
-    }
+    // if (sql_.size()==0){//每个站点都有sql_，空SQL代表当前站点不需要执行。
+    //     *result = true;
+    //     return;
+    // }
+    //保证每条语句不为空
     if (site_ == meta_data_->local_site_name) {//判断是不是当前站点
         mysqlpp::Query query2 = mysql_connection->query(sql_);
         if (query2.exec()) {
@@ -870,8 +871,8 @@ void Executor::Data_Insert_Delete_Thread(std::string sql_,std::string site_,bool
 
 bool Executor:: Data_Insert_Delete(std::vector<std::string> sql_vec, std::vector<std::string> site_vec){ //给每个站点都开一个线程，
     time_t start_time = time(NULL);
-    bool results[MAXTHREAD];
-    std::thread load_threads[MAXTHREAD];
+    bool results[site_vec.size()];
+    std::thread load_threads[site_vec.size()];
     int i;
     for(i = 0; i < site_vec.size(); i++){
         /* 开启一个分片并在对应site存储的线程，通过传promise类给线程，让线程把结果给存到results里面，实现结果返回 */
