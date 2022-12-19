@@ -20,7 +20,7 @@ public:
     bool add_fragment(Fragment fragment);
     bool allocate(std::string fragment_name, std::string site_name);
     // TODO: 这边参数可能需要改咩
-    Table get_table(std::string table_name);
+    Table* get_table(std::string table_name);
     // TODO: 这边怎么传参比较合理呢
     void show_sites();
     void show_databases();

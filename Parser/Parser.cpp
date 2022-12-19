@@ -6,6 +6,7 @@
 #include "Defs/Attribute.h"
 #include <unordered_map>
 #include <algorithm>
+#include "Utils/Exceptions.h"
 
 bool predicate_cmp (const Predicate& p1, const Predicate& p2) {
     if(p1.table_name_ != p2.table_name_)
@@ -507,5 +508,135 @@ void Parser::print_query_tree(int root) {
     return;
 }
 void Parser::free_query_tree() {
+
+}
+
+void Parser::parse_insert(hsql::SQLParserResult *result) {
+    const hsql::InsertStatement* statement = static_cast<const hsql::InsertStatement *>(result->getStatement(0));
+    Table* table = nullptr;
+
+    // get insert table name
+    if(statement->tableName) {
+        insert_stmt.table_name_ = statement->tableName;
+        table = meta_data_->get_table(insert_stmt.table_name_);
+        insert_stmt.table_ = table;
+    }
+    else {
+        return;
+    }
+
+    // get insert values
+    if(statement->values) {
+        int cnt = 0;
+        for(const hsql::Expr* expr : *statement->values) {
+            AttributeType attr_type_ = table->attributes_[cnt].type_;
+            if(expr->type == hsql::kExprLiteralInt && attr_type_ == AttributeType::INTEGER) {
+                insert_stmt.values_.emplace_back(std::to_string(expr->ival));
+            }
+            else if(expr->type == hsql::kExprLiteralString && attr_type_ == AttributeType::CHAR) {
+                insert_stmt.values_.emplace_back(expr->name);
+            }
+            else if(expr->type == hsql::kExprLiteralString && attr_type_ == AttributeType::TEXT) {
+                insert_stmt.values_.emplace_back(expr->name);
+            }
+            else if(expr->type == hsql::kExprLiteralFloat && attr_type_ == AttributeType::FLOAT) {
+                insert_stmt.values_.emplace_back(std::to_string(expr->fval));
+            }
+            else {
+                throw new InvalidDataTypeException("Unmatched data type.");
+            }
+        }
+    }
+}
+
+void Parser::free_insert_stmt() {
+
+}
+
+void Parser::get_delete_where_clause(hsql::Expr* expr) {
+    if(expr->opType == hsql::kOpAnd) {
+        get_where_clause(expr->expr);
+        get_where_clause(expr->expr2);
+        return;
+    }
+
+    hsql::Expr* left_expr = expr->expr;
+    hsql::Expr* right_expr = expr->expr2;
+
+    // delete只会从一个表里面delete
+    switch(expr->opType) {
+        case hsql::kOpEquals: {
+            if(left_expr->type != hsql::kExprColumnRef && right_expr->type == hsql::kExprColumnRef) {
+                std::swap(left_expr, right_expr);
+            }
+
+            Predicate predicate(delete_stmt.table_name_, left_expr->getName(), OperationType::EQUAL, get_expr_value(right_expr));
+//                predicates->emplace_back(predicate);
+            delete_stmt.predicates_.emplace_back(predicate);
+        } break;
+        case hsql::kOpGreater: {
+            OperationType op_type = OperationType::GREAT;
+            if(left_expr->type != hsql::kExprColumnRef && right_expr->type == hsql::kExprColumnRef) {
+                std::swap(left_expr, right_expr);
+                op_type = OperationType::LESS;
+            }
+
+            Predicate predicate(delete_stmt.table_name_, left_expr->getName(), op_type, get_expr_value(right_expr));
+            delete_stmt.predicates_.emplace_back(predicate);
+        } break;
+        case hsql::kOpGreaterEq: {
+            OperationType op_type = OperationType::GREAT_EQUAL;
+            if(left_expr->type != hsql::kExprColumnRef && right_expr->type == hsql::kExprColumnRef) {
+                std::swap(left_expr, right_expr);
+                op_type = OperationType::LESS_EQUAL;
+            }
+
+            Predicate predicate(delete_stmt.table_name_, left_expr->getName(), op_type, get_expr_value(right_expr));
+            delete_stmt.predicates_.emplace_back(predicate);
+        } break;
+        case hsql::kOpLess: {
+            OperationType op_type = OperationType::LESS;
+            if(left_expr->type != hsql::kExprColumnRef && right_expr->type == hsql::kExprColumnRef) {
+                std::swap(left_expr, right_expr);
+                op_type = OperationType::GREAT;
+            }
+
+            Predicate predicate(delete_stmt.table_name_, left_expr->getName(), op_type, get_expr_value(right_expr));
+            delete_stmt.predicates_.emplace_back(predicate);
+        } break;
+        case hsql::kOpLessEq: {
+            OperationType op_type = OperationType::LESS_EQUAL;
+            if(left_expr->type != hsql::kExprColumnRef && right_expr->type == hsql::kExprColumnRef) {
+                std::swap(left_expr, right_expr);
+                op_type = OperationType::GREAT_EQUAL;
+            }
+
+            Predicate predicate(delete_stmt.table_name_, left_expr->getName(), op_type, get_expr_value(right_expr));
+            delete_stmt.predicates_.emplace_back(predicate);
+        } break;
+        default: break;
+    }
+}
+
+void Parser::parse_delete(hsql::SQLParserResult *result) {
+    const hsql::DeleteStatement* statement = static_cast<const hsql::DeleteStatement*>(result->getStatement(0));
+    Table* table = nullptr;
+
+    if(statement->tableName) {
+        delete_stmt.table_name_ = statement->tableName;
+        table = meta_data_->get_table(delete_stmt.table_name_);
+        delete_stmt.table_ = table;
+    }
+    else {
+        return;
+    }
+
+    // get where clause
+    if(statement->expr) {
+        get_delete_where_clause(statement->expr);
+    }
+}
+
+void Parser::free_delete_stmt() {
 
 }

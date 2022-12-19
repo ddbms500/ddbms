@@ -10,6 +10,8 @@
 #include "hsql/SQLParser.h"
 #include "Defs/QueryTree.h"
 #include "Defs/Predicate.h"
+#include "Defs/InsertStmt.h"
+#include "Defs/DeleteStmt.h"
 
 class Parser {
 public:
@@ -21,11 +23,18 @@ public:
 
     void query_tree_generation(hsql::SQLParserResult* result);
     void print_query_tree(int root);
-    void free_query_tree();
     int get_query_tree_root() { return query_tree.root_index; }
     void get_where_clause(hsql::Expr* expr);
     std::string get_expr_value(hsql::Expr* expr);
     bool pruning_check_fragment_selection(const Fragment* fragment, const std::vector<Predicate>* predicates);
+    void parse_delete(hsql::SQLParserResult* result);
+    void parse_insert(hsql::SQLParserResult* result);
+    void get_delete_where_clause(hsql::Expr* expr);
+    void free_query_tree();
+    void free_insert_stmt();
+    void free_delete_stmt();
+    DeleteStmt* get_delete_stmt() { return &delete_stmt; }
+    InsertStmt* get_insert_stmt() { return &insert_stmt; }
 
 private:
     Optimizer* optimizer_;
@@ -39,7 +48,9 @@ private:
     std::vector<Predicate> join_operators;
     QueryTree query_tree;
     // used for delete
+    DeleteStmt delete_stmt;
     // used for insert
+    InsertStmt insert_stmt;
 };
 
 /**

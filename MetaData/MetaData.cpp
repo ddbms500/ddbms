@@ -8,6 +8,7 @@ void MetaData::init() {
 
     Table publisher;
     publisher.table_name_ = "Publisher";
+    publisher.table_fragment_type_ = FragmentType::HORIZONTAL;
     table_index.emplace(publisher.table_name_, 0);
     Attribute publisher_id("id", AttributeType::INTEGER, sizeof(int), true);
     publisher.attributes_.emplace_back(publisher_id);
@@ -48,6 +49,7 @@ void MetaData::init() {
 
     Table book;
     book.table_name_ = "Book";
+    book.table_fragment_type_ = FragmentType::HORIZONTAL;
     table_index.emplace(book.table_name_, 1);
     Attribute book_id("id", AttributeType::INTEGER, sizeof(int), true);
     book.attributes_.emplace_back(book_id);
@@ -81,6 +83,7 @@ void MetaData::init() {
 
     Table customer;
     customer.table_name_ = "Customer";
+    customer.table_fragment_type_ = FragmentType::VERTICAL;
     table_index.emplace(customer.table_name_, 2);
     Attribute customer_id("id", AttributeType::INTEGER, sizeof(int), true);
     customer.attributes_.push_back(customer_id);
@@ -103,6 +106,7 @@ void MetaData::init() {
 
     Table orders;
     orders.table_name_ = "Orders";
+    orders.table_fragment_type_ = FragmentType::HORIZONTAL;
     table_index.emplace(orders.table_name_, 3);
     Attribute orders_customer_id("customer_id", AttributeType::INTEGER, sizeof(int));
     orders.attributes_.push_back(orders_customer_id);
@@ -181,10 +185,16 @@ bool MetaData::allocate(std::string fragment_name, std::string site_name) {
     return true;
 }
 
-Table MetaData::get_table(std::string table_name_) {
-    Table table = Table();
+Table* MetaData::get_table(std::string table_name) {
+    if(table_index.find(table_name) == table_index.end()) {
+        return nullptr;
+    }
 
-    return table;
+    int index = table_index.find(table_name)->second;
+
+    if(index >= tables.size()) return nullptr;
+
+    return &(tables[index]);
 }
 
 void MetaData::show_sites() {

@@ -2,7 +2,7 @@
 #define DDBMS_ATTRIBUTE_H
 
 
-enum class AttributeType {INTEGER, CHAR, TEXT};
+enum class AttributeType {INTEGER, CHAR, TEXT, FLOAT};
 
 class Attribute {
 public:

@@ -26,6 +26,9 @@ public:
     // 把query_tree的子树的根节点编号传送给其他站点, 然后获取其他站点的返回结果(临时表)
     void request_remote_execution_result(int root_index);
 
+    bool Data_Insert_Delete(std::vector<std::string> sql_vec, std::vector<std::string> site_vec);
+    std::vector<std::string> Data_Select_Single(std::vector<std::string> sql_vec, std::vector<std::string> site_vec);
+
     mysqlpp::Connection* mysql_connection = nullptr;
     MetaData* meta_data_;
     std::string sql_ = ""; // used for midterm test
