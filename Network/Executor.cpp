@@ -348,7 +348,7 @@ std::string  Executor::get_sql(QueryNode* node,int tree_id) {//传入-1意味着
 }
 
 
-
+//有一个问题，没有删除临时表
 void Executor::Data_Select_Thread_Remote(int root_index, std::string site_name_,std::promise<bool> &resultObj ){
     //第一部分，发送子树（节点编号），在对应站点获得子树
     whiteBear::ResultsSQLRequest request1;
@@ -358,9 +358,9 @@ void Executor::Data_Select_Thread_Remote(int root_index, std::string site_name_,
     brpc::Channel channel;
     initial_channel(channel, ip + ":" + port);
     whiteBear::DDBService_Stub stub(&channel);
-    set_QTRequest(request1, root_index);
+    set_QTRequest(request1, root_index);//设定request中的root_index
     brpc::Controller controller1;
-    stub.RootIndexService(&controller1, &request1, &response1, nullptr);
+    stub.RootIndexService(&controller1, &request1, &response1, nullptr);//发送root_index，获得子树，构建临时表
 
 
     //第二部分，再次发送节点编号，以及sql语句，获得结果，存储到temp_table中,然后在当前站点创建临时表
@@ -373,7 +373,7 @@ void Executor::Data_Select_Thread_Remote(int root_index, std::string site_name_,
 
     set_ResultsSQLRequest(request2, sql);
     brpc::Controller controller2;
-    stub.ResultsSQL(&controller2, &request2, &response2, nullptr);
+    stub.ResultsSQL(&controller2, &request2, &response2, nullptr);//执行对应的sql语句
 
     // if(temp_table_data.find(root_index) == temp_table_data.end())
     //     temp_table_data.emplace(std::piecewise_construct, std::forward_as_tuple(root_index), std::forward_as_tuple());
@@ -381,10 +381,11 @@ void Executor::Data_Select_Thread_Remote(int root_index, std::string site_name_,
     std::vector<std::string>* records;
     bool success2;
     std::string errors2;
-    get_ResultsSQLResponse(response2, success2, errors2, records);
+    get_ResultsSQLResponse(response2, success2, errors2, records);//把结果解析到records中
 
     auto record = records.begin();
 
+    //在本地创建临时表
     std::string create_sql = "CREATE TABLE ";
     //获取属性名
     create_sql += table_name +"(" ;
@@ -560,6 +561,7 @@ bool Executor::Data_Select_Thread(int root_index,std::promise<bool> &resultObj) 
     return true;
 }
 
+
 bool Executor::Data_Select(int root_index){//只是去除了所有的resultObj
     QueryNode cur_node = qt->nodes[root_index];
     //判断是否是叶子节点
@@ -673,7 +675,7 @@ bool Executor::Data_Select(int root_index){//只是去除了所有的resultObj
 }
 
 
-
+//适用于直接穿sql语句，而不是传root_index。然后结果取交集
 std::vector<std::string> Exectuor::Data_Select_Single(std::vector<std::string> sql_vec, std::vector<std::string> site_vec){
     std::vector<std::string> results[site_vec.size()];
     std::thread load_threads[site_vec.size()];
@@ -726,7 +728,6 @@ std::vector<std::string> Exectuor::Data_Select_Single(std::vector<std::string> s
 
 void Executor::Data_Select_Single_Thread(std::string sql_, std::string site_,std::vector<std::string>* results){
     //当前站点
-
     try{
     if (site_ == meta_data_->local_site_name) {
         mysqlpp::Query query1 = mysql_connection->query(sql_);
@@ -845,7 +846,6 @@ void Executor::Data_Insert_Delete_Thread(std::string sql_,std::string site_,bool
     //     *result = true;
     //     return;
     // }
-    //保证每条语句不为空
     if (site_ == meta_data_->local_site_name) {//判断是不是当前站点
         mysqlpp::Query query2 = mysql_connection->query(sql_);
         if (query2.exec()) {

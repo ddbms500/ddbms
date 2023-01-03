@@ -96,7 +96,7 @@ namespace whiteBear{
             }
         }//QueryTree服务结束
 
-
+        //获得root_index对应的子树的结果
         virtual void RootIndexService(google::protobuf::RpcController* cntl_base,
                                const QueryTreeRequest* request,
                                QueryTreeResponse* response,
@@ -265,6 +265,7 @@ namespace whiteBear{
 //            response->set_success(true);
 //        }
 
+        //执行对应的sql语句，一列一列村在response中
         virtual void ResultsSQL(google::protobuf::RpcController* cntl_base,
                                 const ResultsSQLRequest* request,
                                 ResultsSQLResponse* response,
