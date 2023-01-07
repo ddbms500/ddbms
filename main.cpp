@@ -288,7 +288,7 @@ QueryType parse_command(std::string command) {
             meta_data->show_fragments();
         } break;
         case QueryType::LOAD_DATA: {
-
+            // 把要插入的数据写入文件，scp到对应的站点，使用mysql的insert语句批量插入
 
         } break;
         case QueryType::INSERT: {

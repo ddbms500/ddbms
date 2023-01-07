@@ -12,6 +12,7 @@
 #include "MetaData/MetaData.h"
 #include <mysql++/mysql++.h>
 #include <string.h>
+#include "Network/Executor.cpp"
 
 DEFINE_bool(echo_attachment, true, "Echo attachment as well");
 DEFINE_int32(port, 8800, "TCP Port of this server");
@@ -42,6 +43,7 @@ namespace whiteBear{
     public:
         DDBServiceImpl(){};
         virtual ~DDBServiceImpl(){};
+        //下面这个函数现在是传树，后面变成传root_index直接去meta_data里面找就行
         virtual void QueryTreeService(google::protobuf::RpcController* cntl_base,
                                const QueryTreeRequest* request,
                                QueryTreeResponse* response,
@@ -92,8 +94,31 @@ namespace whiteBear{
                 qn->is_leaf_=request->nodes(i).is_leaf_();
                 qt->nodes[i]=*qn;
             }
-
         }//QueryTree服务结束
+
+
+        virtual void RootIndexService(google::protobuf::RpcController* cntl_base,
+                               const QueryTreeRequest* request,
+                               QueryTreeResponse* response,
+                               google::protobuf::Closure* done){
+            brpc::ClosureGuard done_guard(done);
+            brpc::Controller*cntl=static_cast<brpc::Controller*>(cntl_base);
+            //begin
+                //执行接受到的树（节点编号，创建临时表）从上面解析出，root_index
+                int root_index = request->root_index;
+                try{
+                    bool success = Data_Select(root_index);
+                    response->set_success(success);
+                }
+                catch(const mysqlpp::Exception& er){
+                std::cout<<"sql执行错误:"<<er.what()<<std::endl;
+                response->set_success(false);
+                response->set_errors(er.what());
+            }
+        }
+
+
+
 
         virtual void LoadTable(google::protobuf::RpcController* cntl_base,
                                const LoadTableRequest* request,

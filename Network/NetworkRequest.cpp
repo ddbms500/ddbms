@@ -10,6 +10,9 @@ DEFINE_int32(timeout_ms,100,"RPC timeout in milliseconds");
 DEFINE_int32(max_retry,3,"Max retries(not including the first RPC)");
 DEFINE_int32(interval_ms,1000,"Milliseconds between consecutive requests");
 
+static const std::string AttributeTypeStr[] = {"BOOL", "INT", "CHAR(100)", "FLOAT", "DOUBLE"};
+
+
 bool initial_channel(brpc::Channel& channel, std::string server_addr) {
     brpc::ChannelOptions options;
     options.protocol = FLAGS_protocol;
@@ -65,6 +68,10 @@ void set_QueryTreeRequest(whiteBear::QueryTreeRequest&request,const QueryTree& q
         query_node->set_is_leaf_(node->is_leaf_);
     }
 }
+void set_QTRequest(whiteBear::QueryTreeRequest&request,int root_index ){
+    request.set_root_index(root_index);
+}
+
 
 void set_LoadTableRequest(whiteBear::LoadTableRequest&request){
     request.set_table_name("testforTable");
@@ -162,6 +169,19 @@ void get_ResultsSQLResponse(whiteBear::ResultsSQLResponse&response,bool&success,
             row_nums=response.columns(0).attr_values_double_size();
             break;
     }
+    //先得到属性+属性类别
+    std::string meta_str;
+    for(int j=0;j<response.columns_size();j++){
+        std::string attr_meta_str = response.columns(j).attr_meta();//本身就是string
+        std::string attr_type_str = AttributeTypeStr[static_cast<int>(response.columns(j).attr_type())];
+        meta_str += attr_meta_str+" "+attr_type_str;
+        if (j!=response.columns_size()-1){
+            meta_str = meta_str +" , ";
+        }
+    }   
+    results->push_back(meta_str);
+
+
     for(int i=0;i<row_nums;i++){
         std::string str = "";
         for(int j=0;j<response.columns_size();j++){
@@ -170,35 +190,40 @@ void get_ResultsSQLResponse(whiteBear::ResultsSQLResponse&response,bool&success,
                     if(j==0){
                         str+=std::to_string(response.columns(j).attr_values_bool(i));
                     }else{
-                        str+=("_"+std::to_string(response.columns(j).attr_values_bool(i)));
+                        // str+=("_"+std::to_string(response.columns(j).attr_values_bool(i)));
+                        str+=(","+std::to_string(response.columns(j).attr_values_bool(i)));
                     }
                     break;
                 case whiteBear::Column::INT:
                     if(j==0){
                         str+=std::to_string(response.columns(j).attr_values_int(i));
                     }else{
-                        str+=("_"+std::to_string(response.columns(j).attr_values_int(i)));
+                        // str+=("_"+std::to_string(response.columns(j).attr_values_int(i)));
+                        str+=(","+std::to_string(response.columns(j).attr_values_int(i)));
                     }
                     break;
                 case whiteBear::Column::STRING:
                     if(j==0){
                         str+=response.columns(j).attr_values_string(i);
                     }else{
-                        str+=("_"+response.columns(j).attr_values_string(i));
+                        // str+=("_"+response.columns(j).attr_values_string(i));
+                        str+=(","+response.columns(j).attr_values_string(i));
                     }
                     break;
                 case whiteBear::Column::FLOAT:
                     if(j==0){
                         str+=std::to_string(response.columns(j).attr_values_float(i));
                     }else{
-                        str+=("_"+std::to_string(response.columns(j).attr_values_float(i)));
+                        // str+=("_"+std::to_string(response.columns(j).attr_values_float(i)));
+                        str+=(","+std::to_string(response.columns(j).attr_values_float(i)));
                     }
                     break;
                 case whiteBear::Column::DOUBLE:
                     if(j==0){
                         str+=std::to_string(response.columns(j).attr_values_double(i));
                     }else{
-                        str+=("_"+std::to_string(response.columns(j).attr_values_double(i)));
+                        // str+=("_"+std::to_string(response.columns(j).attr_values_double(i)));
+                        str+=(","+std::to_string(response.columns(j).attr_values_double(i)));
                     }
                     break;
             }

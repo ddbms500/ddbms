@@ -49,6 +49,7 @@ public:
     std::vector<int> sons_; // (leaf node) ->sons.size() = 0
     bool is_parent_ = false;
     bool is_leaf_ = false;
+    int node_id ; //节点在整棵树的nodes中的下表
     /**
      * projection: node_type_(节点类型), site_(站点名称), table_name_, attr_name_,
      */
@@ -56,6 +57,7 @@ public:
 
 class QueryTree {
 public:
+    int tree_id;// >=0，每个执行树的唯一ID
     int n = 0;
     int root_index = -1;
     QueryNode nodes[NODE_SIZE];
