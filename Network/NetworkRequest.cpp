@@ -4,11 +4,14 @@
 #include "NetworkRequest.h"
 
 DEFINE_string(protocol,"baidu_std","Protocol type. Defined in src/brpc/options.proto");
-DEFINE_string(connection_type,"","Connection type,Available values:single,pooled,short");
+DEFINE_string(connection_type,"single","Connection type,Available values:single,pooled,short");
 DEFINE_string(load_balancer,"","The algorithm for load balancing");
-DEFINE_int32(timeout_ms,100,"RPC timeout in milliseconds");
+DEFINE_int32(timeout_ms,1000,"RPC timeout in milliseconds");
 DEFINE_int32(max_retry,3,"Max retries(not including the first RPC)");
 DEFINE_int32(interval_ms,1000,"Milliseconds between consecutive requests");
+
+static const std::string AttributeTypeStr[] = {"BOOL", "INT", "CHAR(100)", "FLOAT", "DOUBLE"};
+
 
 bool initial_channel(brpc::Channel& channel, std::string server_addr) {
     brpc::ChannelOptions options;
@@ -65,6 +68,10 @@ void set_QueryTreeRequest(whiteBear::QueryTreeRequest&request,const QueryTree& q
         query_node->set_is_leaf_(node->is_leaf_);
     }
 }
+void set_QTRequest(whiteBear::QueryTreeRequest&request,int root_index ){
+    request.set_root_index(root_index);
+}
+
 
 void set_LoadTableRequest(whiteBear::LoadTableRequest&request){
     request.set_table_name("testforTable");
@@ -101,6 +108,9 @@ void set_ResultsSQLRequest(whiteBear::ResultsSQLRequest&request, std::string sql
     request.set_sql(sql);
 }
 
+void set_SelectSQLRequest(whiteBear::SelectSQLRequest&request, std::string sql) {
+    request.set_sql(sql);
+}
 
 void QueryTreeResponse(whiteBear::LoadTableResponse&response,bool&success,std::string&errors){
     success=response.success();
@@ -162,6 +172,19 @@ void get_ResultsSQLResponse(whiteBear::ResultsSQLResponse&response,bool&success,
             row_nums=response.columns(0).attr_values_double_size();
             break;
     }
+    //先得到属性+属性类别
+    std::string meta_str;
+    for(int j=0;j<response.columns_size();j++){
+        std::string attr_meta_str = response.columns(j).attr_meta();//本身就是string
+        std::string attr_type_str = AttributeTypeStr[static_cast<int>(response.columns(j).attr_type())];
+        meta_str += attr_meta_str+" "+attr_type_str;
+        if (j!=response.columns_size()-1){
+            meta_str = meta_str +" , ";
+        }
+    }   
+    results->push_back(meta_str);
+
+
     for(int i=0;i<row_nums;i++){
         std::string str = "";
         for(int j=0;j<response.columns_size();j++){
@@ -170,39 +193,124 @@ void get_ResultsSQLResponse(whiteBear::ResultsSQLResponse&response,bool&success,
                     if(j==0){
                         str+=std::to_string(response.columns(j).attr_values_bool(i));
                     }else{
-                        str+=("_"+std::to_string(response.columns(j).attr_values_bool(i)));
+                        // str+=("_"+std::to_string(response.columns(j).attr_values_bool(i)));
+                        str+=(","+std::to_string(response.columns(j).attr_values_bool(i)));
                     }
                     break;
                 case whiteBear::Column::INT:
                     if(j==0){
                         str+=std::to_string(response.columns(j).attr_values_int(i));
                     }else{
-                        str+=("_"+std::to_string(response.columns(j).attr_values_int(i)));
+                        // str+=("_"+std::to_string(response.columns(j).attr_values_int(i)));
+                        str+=(","+std::to_string(response.columns(j).attr_values_int(i)));
                     }
                     break;
                 case whiteBear::Column::STRING:
                     if(j==0){
                         str+=response.columns(j).attr_values_string(i);
                     }else{
-                        str+=("_"+response.columns(j).attr_values_string(i));
+                        // str+=("_"+response.columns(j).attr_values_string(i));
+                        str+=(","+response.columns(j).attr_values_string(i));
                     }
                     break;
                 case whiteBear::Column::FLOAT:
                     if(j==0){
                         str+=std::to_string(response.columns(j).attr_values_float(i));
                     }else{
-                        str+=("_"+std::to_string(response.columns(j).attr_values_float(i)));
+                        // str+=("_"+std::to_string(response.columns(j).attr_values_float(i)));
+                        str+=(","+std::to_string(response.columns(j).attr_values_float(i)));
                     }
                     break;
                 case whiteBear::Column::DOUBLE:
                     if(j==0){
                         str+=std::to_string(response.columns(j).attr_values_double(i));
                     }else{
-                        str+=("_"+std::to_string(response.columns(j).attr_values_double(i)));
+                        // str+=("_"+std::to_string(response.columns(j).attr_values_double(i)));
+                        str+=(","+std::to_string(response.columns(j).attr_values_double(i)));
                     }
                     break;
             }
         }//一行的一个属性
         results->push_back(str);
+    }//一行结束
+}
+
+void get_SelectSQLResponse(whiteBear::SelectSQLResponse&response, bool&success, std::string&errors,std::string&values) {
+    // std::cout << "begin get response\n";
+    success=response.success();
+    std::cout << success << std::endl;
+    if(!success){
+        errors=response.errors();
+    }
+
+    int row_nums=0;//获取列的数量
+    switch(response.columns(0).attr_type()){
+        case whiteBear::Column::BOOL:
+            row_nums=response.columns(0).attr_values_bool_size();
+            break;
+        case whiteBear::Column::INT:
+            row_nums=response.columns(0).attr_values_int_size();
+            break;
+        case whiteBear::Column::STRING:
+            row_nums=response.columns(0).attr_values_string_size();
+            break;
+        case whiteBear::Column::FLOAT:
+            row_nums=response.columns(0).attr_values_float_size();
+            break;
+        case whiteBear::Column::DOUBLE:
+            row_nums=response.columns(0).attr_values_double_size();
+            break;
+    }
+    std::cout << "get num\n";
+    values = "";
+    for(int i=0;i<row_nums;i++){
+        if(i > 0) values += ", ";
+        std::string str = "";
+        for(int j=0;j<response.columns_size();j++){
+            switch(response.columns(j).attr_type()){
+                case whiteBear::Column::BOOL:
+                    if(j==0){
+                        str+=std::to_string(response.columns(j).attr_values_bool(i));
+                    }else{
+                        // str+=("_"+std::to_string(response.columns(j).attr_values_bool(i)));
+                        str+=(","+std::to_string(response.columns(j).attr_values_bool(i)));
+                    }
+                    break;
+                case whiteBear::Column::INT:
+                    if(j==0){
+                        str+=std::to_string(response.columns(j).attr_values_int(i));
+                    }else{
+                        // str+=("_"+std::to_string(response.columns(j).attr_values_int(i)));
+                        str+=(","+std::to_string(response.columns(j).attr_values_int(i)));
+                    }
+                    break;
+                case whiteBear::Column::STRING:
+                    if(j==0){
+                        str+="'" + response.columns(j).attr_values_string(i) + "'";
+                    }else{
+                        // str+=("_"+response.columns(j).attr_values_string(i));
+                        str+=(", '"+response.columns(j).attr_values_string(i) + "'");
+                    }
+                    break;
+                case whiteBear::Column::FLOAT:
+                    if(j==0){
+                        str+=std::to_string(response.columns(j).attr_values_float(i));
+                    }else{
+                        // str+=("_"+std::to_string(response.columns(j).attr_values_float(i)));
+                        str+=(","+std::to_string(response.columns(j).attr_values_float(i)));
+                    }
+                    break;
+                case whiteBear::Column::DOUBLE:
+                    if(j==0){
+                        str+=std::to_string(response.columns(j).attr_values_double(i));
+                    }else{
+                        // str+=("_"+std::to_string(response.columns(j).attr_values_double(i)));
+                        str+=(","+std::to_string(response.columns(j).attr_values_double(i)));
+                    }
+                    break;
+            }
+        }//一行的一个属性
+        // std::cout << str << std::endl;
+        values += "(" + str + ")";
     }//一行结束
 }

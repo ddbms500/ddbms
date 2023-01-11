@@ -117,6 +117,18 @@ message ResultsSQLResponse{
     optional string errors = 5 [default="NULL error message"];//如果失败，则存储报错信息
 }
 
+message SelectSQLRequest{
+    required string sql = 1;
+}
+
+message SelectSQLResponse{
+    required string table_name = 1;//表名
+    required int32 meta_nums = 2 [default=0];//列的数量
+    repeated Column columns = 3;//列为单位组成的数组
+    required bool success = 4 [default=false];//SQL的执行结果,默认失败
+    optional string errors = 5 [default="NULL error message"];//如果失败，则存储报错信息
+}
+
 service DDBService{
     rpc QueryTreeService(QueryTreeRequest) returns (QueryTreeResponse);
     rpc LoadTable(LoadTableRequest) returns (LoadTableResponse);
@@ -124,4 +136,5 @@ service DDBService{
     rpc DeleteTempTable(DeleteTempTableRequest) returns (DeleteTempTableResponse);
     rpc NonResultsSQL(NonResultsSQLRequest) returns (NonResultsSQLResponse);
     rpc ResultsSQL (ResultsSQLRequest)  returns (ResultsSQLResponse);
+    rpc SelectSQL (SelectSQLRequest) returns (SelectSQLResponse);
 }

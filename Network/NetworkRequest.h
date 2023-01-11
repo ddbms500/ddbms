@@ -22,11 +22,13 @@ void set_QueryTempTableRequest(whiteBear::QueryTempTableRequest&request, std::st
 void set_DeleteTempTableRequest(whiteBear::DeleteTempTableRequest&request,std::string table_name);
 void set_NonResultsSQLRequest(whiteBear::NonResultsSQLRequest&request,std::string sql);
 void set_ResultsSQLRequest(whiteBear::ResultsSQLRequest&request, std::string sql);
+void set_SelectSQLRequest(whiteBear::SelectSQLRequest&request, std::string sql);
 void QueryTreeResponse(whiteBear::LoadTableResponse&response,bool&success, std::string&errors);
 void get_LoadTableResponse(whiteBear::LoadTableResponse&response,bool&success,std::string&errors);
 void get_QueryTempTableResponse(whiteBear::QueryTempTableResponse&response,bool&success,std::string&errors);
 void get_DeleteTempTableResponse(whiteBear::DeleteTempTableResponse&response,bool&success,std::string&errors);
 void get_NonResultsSQLResponse(whiteBear::NonResultsSQLResponse&response,bool&success,std::string&errors);
 void get_ResultsSQLResponse(whiteBear::ResultsSQLResponse&response,bool&success,std::string&errors,std::vector<std::string>*results);
+void get_SelectSQLResponse(whiteBear::SelectSQLResponse&response, bool&success, std::string&errors,std::string& values);
 
 #endif //DDBMS_NETWORKREQUEST_H

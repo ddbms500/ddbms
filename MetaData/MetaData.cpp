@@ -1,13 +1,43 @@
 #include "MetaData.h"
+#include <fstream>
+#include "Utils/RecordPrinter.h"
+#include "Utils/Exceptions.h"
 
 void MetaData::init() {
-    site_map.emplace("site1", std::make_pair("192.168.3.1", "1200"));
-    site_map.emplace("site2", std::make_pair("192.168.3.2", "1200"));
-    site_map.emplace("site3", std::make_pair("192.168.3.3", "1200"));
-    site_map.emplace("site4", std::make_pair("192.168.3.4", "1200"));
+    site_map.emplace("site1", std::make_pair("172.25.32.1", "1200"));
+    site_map.emplace("site2", std::make_pair("172.25.32.2", "1200"));
+    site_map.emplace("site3", std::make_pair("172.25.32.3", "1200"));
+    site_map.emplace("site4", std::make_pair("172.25.32.4", "1200"));
+    local_site_name = "site1";
+    std::vector<std::string> site1_delete_sql;
+    site1_delete_sql.push_back("delete from Publisher;");
+    site1_delete_sql.push_back("delete from Customer;");
+    site1_delete_sql.push_back("delete from Orders;");
+    site1_delete_sql.push_back("delete from Book;");
+    delete_sql.emplace("site1", site1_delete_sql);
+    std::vector<std::string> site2_delete_sql;
+    site2_delete_sql.push_back("delete from Publisher;");
+    site2_delete_sql.push_back("delete from Customer;");
+    site2_delete_sql.push_back("delete from Orders;");
+    site2_delete_sql.push_back("delete from Book;");
+    delete_sql.emplace("site2", site2_delete_sql);
+    std::vector<std::string> site3_delete_sql;
+    site3_delete_sql.push_back("delete from Publisher;");
+    site3_delete_sql.push_back("delete from Orders;");
+    site3_delete_sql.push_back("delete from Book;");
+    delete_sql.emplace("site3", site3_delete_sql);
+    std::vector<std::string> site4_delete_sql;
+    site4_delete_sql.push_back("delete from Publisher;");
+    site4_delete_sql.push_back("delete from Orders;");
+    delete_sql.emplace("site4", site4_delete_sql);
+    site_color.emplace("site1", "red");
+    site_color.emplace("site2", "yellow");
+    site_color.emplace("site3", "blue");
+    site_color.emplace("site1", "pink");
 
     Table publisher;
     publisher.table_name_ = "Publisher";
+    publisher.table_fragment_type_ = FragmentType::HORIZONTAL;
     table_index.emplace(publisher.table_name_, 0);
     Attribute publisher_id("id", AttributeType::INTEGER, sizeof(int), true);
     publisher.attributes_.emplace_back(publisher_id);
@@ -48,6 +78,7 @@ void MetaData::init() {
 
     Table book;
     book.table_name_ = "Book";
+    book.table_fragment_type_ = FragmentType::HORIZONTAL;
     table_index.emplace(book.table_name_, 1);
     Attribute book_id("id", AttributeType::INTEGER, sizeof(int), true);
     book.attributes_.emplace_back(book_id);
@@ -81,6 +112,7 @@ void MetaData::init() {
 
     Table customer;
     customer.table_name_ = "Customer";
+    customer.table_fragment_type_ = FragmentType::VERTICAL;
     table_index.emplace(customer.table_name_, 2);
     Attribute customer_id("id", AttributeType::INTEGER, sizeof(int), true);
     customer.attributes_.push_back(customer_id);
@@ -103,6 +135,7 @@ void MetaData::init() {
 
     Table orders;
     orders.table_name_ = "Orders";
+    orders.table_fragment_type_ = FragmentType::HORIZONTAL;
     table_index.emplace(orders.table_name_, 3);
     Attribute orders_customer_id("customer_id", AttributeType::INTEGER, sizeof(int));
     orders.attributes_.push_back(orders_customer_id);
@@ -140,6 +173,11 @@ void MetaData::init() {
     orders.fragments_.emplace_back(orders_fragment_4);
 
     tables.emplace_back(orders);
+
+    for(int i = 0; i < tables.size(); ++i) {
+        for(int j = 0; j < tables[i].fragments_.size(); ++j)
+            tables[i].fragments_[j].init(&tables[i].attributes_);
+    }
 }
 
 bool MetaData::add_site(std::string name, std::string ip, std::string port) {
@@ -148,7 +186,10 @@ bool MetaData::add_site(std::string name, std::string ip, std::string port) {
 }
 
 bool MetaData::add_db(std::string db_name) {
-
+    std::ofstream file;
+    file.open(db_name_file);
+    file << db_name;
+    file.close();
     return true;
 }
 
@@ -162,13 +203,19 @@ bool MetaData::use_db(std::string db_name) {
     return true;
 }
 
-bool MetaData::add_table(std::string table_name_, std::vector<Attribute> attributes_) {
-
+bool MetaData::add_table(std::string table_name_) {
+    created_tables.emplace_back(table_name_);
     return true;
 }
 
 bool MetaData::drop_table(std::string table_name_) {
-
+    for(auto iter = created_tables.begin(); iter != created_tables.end(); ++iter) {
+        if(table_name_.compare(*iter) == 0) {
+            iter = created_tables.erase(iter);
+            break;
+        }
+    }
+    return true;
 }
 
 bool MetaData::add_fragment(Fragment fragment) {
@@ -181,10 +228,18 @@ bool MetaData::allocate(std::string fragment_name, std::string site_name) {
     return true;
 }
 
-Table MetaData::get_table(std::string table_name_) {
-    Table table = Table();
-
-    return table;
+Table* MetaData::get_table(std::string table_name_) {
+    auto index = table_index.find(table_name_);
+    if(index == table_index.end()) {
+        throw new TableNotExistsException(table_name_ + "does not exist.\n");
+    }
+    if(index->second > tables.size()) {
+        throw new TableNotExistsException(table_name_ + "does not exist.\n");
+    }
+    if(tables[index->second].table_name_.compare(table_name_) != 0) {
+        throw new TableNotExistsException(table_name_ + "does not exist.\n");
+    }
+    return &tables[index->second];
 }
 
 void MetaData::show_sites() {
@@ -192,11 +247,23 @@ void MetaData::show_sites() {
 }
 
 void MetaData::show_databases() {
-
+    std::ifstream file;
+    file.open(db_name_file);
+    std::string db_name;
+    file >> db_name;
+    file.close();
+    std::cout << "current database is: " << db_name << std::endl;
 }
 
 void MetaData::show_tables() {
-
+    RecordPrinter printer(1);
+    printer.print_separator();
+    printer.print_record({"Tables"});
+    printer.print_separator();
+    for(auto tab : created_tables) {
+        printer.print_record({tab});
+    }
+    printer.print_separator();
 }
 
 void MetaData::show_fragments() {

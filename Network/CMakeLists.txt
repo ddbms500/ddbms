@@ -4,7 +4,7 @@ project(table_c++ C CXX)
 option(LINK_SO "Whether examples are linked dynamically" OFF)
 
 execute_process(
-        COMMAND bash -c "find /home/sxy/incubator-brpc -type d -regex \".*output/include$\" | head -n1 | xargs dirname | tr -d '\n'"
+        COMMAND bash -c "find /home/user-linux/ddb/incubator-brpc -type d -regex \".*output/include$\" | head -n1 | xargs dirname | tr -d '\n'"
         ##COMMAND bash -c "find ${PROJECT_SOURCE_DIR}/../.. -type d -regex \".*output/include$\" | head -n1 | xargs dirname | tr -d '\n'"
         OUTPUT_VARIABLE OUTPUT_PATH
 )

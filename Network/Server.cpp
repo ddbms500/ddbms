@@ -12,6 +12,7 @@
 #include "MetaData/MetaData.h"
 #include <mysql++/mysql++.h>
 #include <string.h>
+// #include "Network/Executor.cpp"
 
 DEFINE_bool(echo_attachment, true, "Echo attachment as well");
 DEFINE_int32(port, 8800, "TCP Port of this server");
@@ -42,6 +43,7 @@ namespace whiteBear{
     public:
         DDBServiceImpl(){};
         virtual ~DDBServiceImpl(){};
+        //下面这个函数现在是传树，后面变成传root_index直接去meta_data里面找就行
         virtual void QueryTreeService(google::protobuf::RpcController* cntl_base,
                                const QueryTreeRequest* request,
                                QueryTreeResponse* response,
@@ -92,8 +94,31 @@ namespace whiteBear{
                 qn->is_leaf_=request->nodes(i).is_leaf_();
                 qt->nodes[i]=*qn;
             }
-
         }//QueryTree服务结束
+
+
+        virtual void RootIndexService(google::protobuf::RpcController* cntl_base,
+                               const QueryTreeRequest* request,
+                               QueryTreeResponse* response,
+                               google::protobuf::Closure* done){
+            // brpc::ClosureGuard done_guard(done);
+            // brpc::Controller*cntl=static_cast<brpc::Controller*>(cntl_base);
+            // //begin
+            //     //执行接受到的树（节点编号，创建临时表）从上面解析出，root_index
+            //     int root_index = request->root_index();
+            //     try{
+            //         bool success = Data_Select(root_index);
+            //         response->set_success(success);
+            //     }
+            //     catch(const mysqlpp::Exception& er){
+            //     std::cout<<"sql执行错误:"<<er.what()<<std::endl;
+            //     response->set_success(false);
+            //     response->set_errors(er.what());
+            // }
+        }
+
+
+
 
         virtual void LoadTable(google::protobuf::RpcController* cntl_base,
                                const LoadTableRequest* request,
@@ -206,7 +231,18 @@ namespace whiteBear{
 
             //删除临时表并设置response的部分i
             std::string sql=request->sql();
+            try {
+                mysqlpp::Connection conn("ddb", "127.0.0.1", "root", "123456");
+                mysqlpp::Query query = conn.query();
+                query << sql;
+                query.execute();
+            }catch(const mysqlpp::Exception& er){
+                std::cout<<"sql执行错误:"<<er.what()<<std::endl;
+                response->set_success(false);
+                response->set_errors(er.what());
+            }
             response->set_success(true);
+            
         }//NonResultsSQL服务定义结束
 
 //        virtual void ResultsSQL(google::protobuf::RpcController* cntl_base,
@@ -243,6 +279,55 @@ namespace whiteBear{
         virtual void ResultsSQL(google::protobuf::RpcController* cntl_base,
                                 const ResultsSQLRequest* request,
                                 ResultsSQLResponse* response,
+                                google::protobuf::Closure* done){
+            //BRPC server需要
+            brpc::ClosureGuard done_guard(done);
+            brpc::Controller*cntl=static_cast<brpc::Controller*>(cntl_base);
+            LOG(INFO)<<"received ResultsSQL request from"<<cntl->remote_side();
+            try{
+                mysqlpp::Connection conn("ddb", "127.0.0.1", "root", "123456");
+                mysqlpp::Query query = conn.query();
+                query << request->sql().c_str();
+                mysqlpp::StoreQueryResult res = query.store();
+                int c_nums=res.field_names()->size();//得到列的数量
+                response->set_table_name("Temporary NULL");
+                response->set_meta_nums(c_nums);
+                for(int i=0;i<c_nums;i++){//得出各列
+                    whiteBear::Column*column = response->add_columns();
+                    column->set_attr_meta(res.field_name(i));//获得列名
+                    mysqlpp::StoreQueryResult::const_iterator it;
+                    for(it = res.begin();it!=res.end();++it){
+                        mysqlpp::Row row = * it;
+                        mysqlpp::FieldTypes::value_type ft = res.field_type(i);
+                        if(strstr(ft.sql_name(),"BOOL")!=NULL){
+                            column->set_attr_type(whiteBear::Column::BOOL);
+                            column->add_attr_values_bool(row[i]);
+                        }else if(strstr(ft.sql_name(),"INT")!=NULL){
+                            column->set_attr_type(whiteBear::Column::INT);
+                            column->add_attr_values_int(row[i]);
+                        }else if(strstr(ft.sql_name(),"DOUBLE")!=NULL){
+                            column->set_attr_type(whiteBear::Column::DOUBLE);
+                            column->add_attr_values_double(row[i]);
+                        }else if(strstr(ft.sql_name(),"FLOAT")!=NULL){
+                            column->set_attr_type(whiteBear::Column::FLOAT);
+                            column->add_attr_values_float(row[i]);
+                        }else{
+                            column->set_attr_type(whiteBear::Column::STRING);
+                            column->add_attr_values_string(row[i]);
+                        }
+                    }
+                }
+                response->set_success(true);
+            }catch(const mysqlpp::Exception& er){
+                std::cout<<"sql执行错误:"<<er.what()<<std::endl;
+                response->set_success(false);
+                response->set_errors(er.what());
+            }
+        }
+
+        virtual void SelectSQL (google::protobuf::RpcController* cntl_base,
+                                const SelectSQLRequest* request,
+                                SelectSQLResponse* response,
                                 google::protobuf::Closure* done){
             //BRPC server需要
             brpc::ClosureGuard done_guard(done);

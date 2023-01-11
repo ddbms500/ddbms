@@ -1,11 +1,15 @@
 #ifndef DDBMS_ATTRIBUTE_H
 #define DDBMS_ATTRIBUTE_H
 
+enum class AttributeType {INTEGER, CHAR, TEXT, FLOAT};
 
-enum class AttributeType {INTEGER, CHAR, TEXT};
+static std::string attribute_type_str[5] = {
+    "int", "char", "text", "float"
+};
 
 class Attribute {
 public:
+    Attribute() {}
     Attribute(const std::string& attr_name, AttributeType type, int data_length, bool is_primary_key = false)
     : attr_name_(attr_name), type_(type), data_length_(data_length), is_primary_key_(is_primary_key) {}
 

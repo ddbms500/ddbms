@@ -4,6 +4,7 @@
 
 #ifndef DDBMS_QUERY_H
 #define DDBMS_QUERY_H
+#include <iostream>
 
 enum class QueryType {
     DEFINE_SITE,
@@ -28,7 +29,7 @@ enum class QueryType {
 };
 
 // used for debug & test
-std::string query_type_str[20] = {"DEFINE_SITE",
+static std::string query_type_str[20] = {"DEFINE_SITE",
                                   "CREATE_DB",
                                   "DROP_DB",
                                   "USE_DB",
@@ -61,12 +62,12 @@ static const std::string reg_create_table = "^create\\s+table\\s+[A-Za-z0-9]+\\s
 static const std::string reg_drop_table = "^drop\\s+table\\s+[A-Za-z0-9]+\\s*;$";
 // use "database name";
 static const std::string reg_use_db = "^(use\\s+)([A-Za-z0-9]+)\\s*;$";
-// create horizontal|vertical fragment on "table name" "fragment conditions";
-static const std::string reg_create_fragment = "^create\\s+(horizontal|vertical)\\s+fragment\\s+on\\s+[A-Za-z0-9]+\\s+[^;]+\\s*;$";
+// create horizontal|vertical fragment "fragment name" on "table name" "fragment conditions";
+static const std::string reg_create_fragment = "^create\\s+(horizontal|vertical)\\s+fragment\\s+[A-Za-z0-9.]+\\s+on\\s+[A-Za-z0-9]+\\s+[^;]+\\s*;$";
 // allocate "fragmentation name" to "site name";
-static const std::string reg_allocate = "^allocate\\s+[A-Za-z0-9]+\\s+[A-Za-z0-9]+\\s*;$";
-// show databases;
-static const std::string reg_show_databases = "^show\\s+databases\\s*;$";
+static const std::string reg_allocate = "^allocate\\s+[A-Za-z0-9.]+\\s+to\\s+[A-Za-z0-9]+\\s*;$";
+// show database;
+static const std::string reg_show_databases = "^show\\s+database\\s*;$";
 // show tables;
 static const std::string reg_show_tables = "^show\\s+tables\\s*;$";
 // show sites;
@@ -75,10 +76,10 @@ static const std::string reg_show_sites = "^show\\s+sites\\s*;$";
 static const std::string reg_show_fragments = "^show\\s+fragments\\s*;$";
 // load data "file name"
 // TODO: 文件里面内容是什么,是load data到某个表?还是文件里包括表的元数据?格式需要一并调整
-static const std::string reg_load_data = "^load\\s+data\\s+[A-Za-z0-9]+\\s*;$";
+static const std::string reg_load_data = "^load\\s+data\\s+[A-Za-z0-9.,]+\\s*;$";
 // insert into "table name" values()
 // TODO: 理论上来说分号也是允许的,这边values()括号里的regex该怎么写比较合理呢?
-static const std::string reg_insert = "^insert\\s+into\\s+[A-Za-z0-9]+\\s+values\\s*\\([^;]+\\)\\s*;$";
+static const std::string reg_insert = "^insert\\s+into\\s*[^;]+\\s*;$";
 // delete from "table name" where "conditions"
 static const std::string reg_delete = "^delete\\s+from\\s+[A-Za-z0-9]+\\s+where\\s+[^;]+\\s*;$";
 // select xxx from xxx where xxx

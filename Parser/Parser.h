@@ -10,6 +10,8 @@
 #include "hsql/SQLParser.h"
 #include "Defs/QueryTree.h"
 #include "Defs/Predicate.h"
+#include "Defs/InsertStmt.h"
+#include "Defs/DeleteStmt.h"
 
 class Parser {
 public:
@@ -21,25 +23,51 @@ public:
 
     void query_tree_generation(hsql::SQLParserResult* result);
     void print_query_tree(int root);
-    void free_query_tree();
+    void draw_query_tree(int root);
+    void draw_nodes(int root);
     int get_query_tree_root() { return query_tree.root_index; }
     void get_where_clause(hsql::Expr* expr);
     std::string get_expr_value(hsql::Expr* expr);
-    bool pruning_check_fragment_selection(const Fragment* fragment, const std::vector<Predicate>* predicates);
+    bool pruning_check_fragment_selection(Fragment* fragment, const std::vector<Predicate>* predicates);
+    void parse_delete(hsql::SQLParserResult* result);
+    void parse_insert(hsql::SQLParserResult* result);
+    void get_delete_where_clause(hsql::Expr* expr);
+    void free_query_tree();
+    void free_insert_stmt();
+    void free_delete_stmt();
+    DeleteStmt* get_delete_stmt() { return &delete_stmt; }
+    InsertStmt* get_insert_stmt() { return &insert_stmt; }
 
 private:
     Optimizer* optimizer_;
     MetaData* meta_data_;
 
+    std::string draw_str;
+
     // used for leaf node selection operator
+    // top select attr + join need attr
     std::unordered_map<std::string, std::vector<std::string>> table_attr_map;
+    // all attr table need
+    // top select attr + join need attr + predicate attr
+    std::unordered_map<std::string, std::vector<std::string>> all_attr_map;
     // used for top select attr
     std::unordered_map<std::string, std::vector<std::string>> select_attr_map;
     std::unordered_map<std::string, std::vector<Predicate>> where_clause;
     std::vector<Predicate> join_operators;
     QueryTree query_tree;
+    QueryTree query_tree_used_for_print;
     // used for delete
+    DeleteStmt delete_stmt;
     // used for insert
+    InsertStmt insert_stmt;
+
+    // site_leaf_node起名不太恰当了, 应该是每个site生成的子树的父节点,可能是projection节点, 可能是selection节点
+    std::unordered_map<std::string, std::vector<int>> site_leaf_node;
+    // table_leaf_node存储的是每个table包含的子树父节点的下标
+    std::unordered_map<std::string, std::vector<int>> table_leaf_node;
+    //记录节点是否需要剪枝，用于join剪枝
+    std::unordered_map<int, bool> need_prune;
+    // std::ofstream graph;
 };
 
 /**
